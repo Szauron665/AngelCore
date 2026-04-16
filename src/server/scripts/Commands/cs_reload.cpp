@@ -51,6 +51,10 @@ EndScriptData */
 #include "WaypointManager.h"
 #include "World.h"
 
+#ifdef ANGELSCRIPT_INTEGRATION
+#include "AngelScriptMgr.h"
+#endif
+
 #if TRINITY_COMPILER == TRINITY_COMPILER_GNU
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
@@ -83,6 +87,9 @@ public:
             { "auctions",                      rbac::RBAC_PERM_COMMAND_RELOAD_AUCTIONS,                         true,  &HandleReloadAuctionsCommand,                   "" },
             { "access_requirement",            rbac::RBAC_PERM_COMMAND_RELOAD_ACCESS_REQUIREMENT,               true,  &HandleReloadAccessRequirementCommand,          "" },
             { "achievement_reward",            rbac::RBAC_PERM_COMMAND_RELOAD_ACHIEVEMENT_REWARD,               true,  &HandleReloadAchievementRewardCommand,          "" },
+#ifdef ANGELSCRIPT_INTEGRATION
+            { "angelscript",                 rbac::RBAC_PERM_COMMAND_RELOAD_ANGELSCRIPT,                      true,  &HandleReloadAngelScriptCommand,                "" },
+#endif
             { "all",                           rbac::RBAC_PERM_COMMAND_RELOAD_ALL,                              true,  nullptr,                                        "", reloadAllCommandTable },
             { "areatrigger_involvedrelation",  rbac::RBAC_PERM_COMMAND_RELOAD_AREATRIGGER_INVOLVEDRELATION,     true,  &HandleReloadQuestAreaTriggersCommand,          "" },
             { "areatrigger_tavern",            rbac::RBAC_PERM_COMMAND_RELOAD_AREATRIGGER_TAVERN,               true,  &HandleReloadAreaTriggerTavernCommand,          "" },
@@ -178,6 +185,25 @@ public:
     }
 
     //reload commands
+#ifdef ANGELSCRIPT_INTEGRATION
+    static bool HandleReloadAngelScriptCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+        {
+            handler->SendSysMessage("Reloading all AngelScript scripts...");
+            sAngelScriptMgr->ReloadScripts();
+            handler->SendSysMessage("AngelScript scripts reloaded.");
+        }
+        else
+        {
+            handler->PSendSysMessage("Reloading AngelScript script: %s", args);
+            sAngelScriptMgr->ReloadScript(args);
+            handler->SendSysMessage("AngelScript script reloaded.");
+        }
+        return true;
+    }
+#endif
+
     static bool HandleReloadSupportSystemCommand(ChatHandler* handler, char const* /*args*/)
     {
         TC_LOG_INFO("misc", "Re-Loading Support System Tables...");

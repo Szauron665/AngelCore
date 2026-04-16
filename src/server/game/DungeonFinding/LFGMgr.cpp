@@ -37,6 +37,11 @@
 #include "SocialMgr.h"
 #include "World.h"
 #include "WorldSession.h"
+
+#ifdef ANGELSCRIPT_INTEGRATION
+#include "AngelScriptMgr.h"
+#endif
+
 #include <sstream>
 
 namespace lfg
@@ -1799,6 +1804,29 @@ LfgLockMap LFGMgr::GetLockedDungeons(ObjectGuid guid)
         if (lockStatus)
             lock[dungeon->Entry()] = LfgLockInfoData(lockStatus, dungeon->requiredItemLevel, player->GetAverageItemLevel());
     }
+
+    // AngelScript hook point: allows scripts to modify the locked dungeon list
+#ifdef ANGELSCRIPT_INTEGRATION
+    if (sAngelScriptMgr->IsEnabled())
+    {
+        std::vector<uint32> lockedIds;
+        for (auto const& [entry, data] : lock)
+            lockedIds.push_back(entry);
+
+        if (sAngelScriptMgr->TriggerCustomHook_GetLockedDungeons(player, lockedIds))
+        {
+            // Script modified the lock list — rebuild lock map
+            LfgLockMap newLock;
+            for (uint32 entry : lockedIds)
+            {
+                auto it = lock.find(entry);
+                if (it != lock.end())
+                    newLock[entry] = it->second;
+            }
+            lock = newLock;
+        }
+    }
+#endif
 
     return lock;
 }

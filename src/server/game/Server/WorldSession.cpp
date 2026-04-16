@@ -18,10 +18,18 @@
 #include "WorldSession.h"
 #include "Account.h"
 #include "AccountMgr.h"
+#include "BattlenetAccountMgr.h"
+#include "Battleground.h"
+#include "BattlegroundMgr.h"
+#include "BattlePetMgr.h"
+#include "World.h"
+
+#ifdef ANGELSCRIPT_INTEGRATION
+#include "AngelScriptMgr.h"
+#endif
+
 #include "AuthenticationPackets.h"
 #include "Bag.h"
-#include "BattlePetMgr.h"
-#include "BattlegroundMgr.h"
 #include "BattlenetPackets.h"
 #include "CharacterPackets.h"
 #include "ChatPackets.h"
@@ -49,6 +57,7 @@
 #include "RBAC.h"
 #include "RealmList.h"
 #include "ScriptMgr.h"
+
 #include "SocialMgr.h"
 #include "World.h"
 #include "WorldSocket.h"
@@ -445,8 +454,20 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
                     if (AntiDOS.EvaluateOpcode(*packet, currentTime))
                     {
-                        sScriptMgr->OnPacketReceive(this, *packet);
-                        opHandle->Call(this, *packet);
+                        // Try AngelScript packet handler first (takes priority over C++)
+                        bool handled = false;
+#ifdef ANGELSCRIPT_INTEGRATION
+                        if (sAngelScriptMgr->IsEnabled())
+                        {
+                            handled = sAngelScriptMgr->TriggerPacketReceive(this, *packet, packet->GetOpcode());
+                        }
+#endif
+                        // If not handled by AngelScript, use C++ handler
+                        if (!handled)
+                        {
+                            sScriptMgr->OnPacketReceive(this, *packet);
+                            opHandle->Call(this, *packet);
+                        }
                     }
                     else
                         processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE;   // break out of packet processing loop
@@ -456,9 +477,22 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                         , GetPlayerInfo());
                     break;
                 case STATUS_UNHANDLED:
-                    TC_LOG_ERROR("network.opcode", "Received not handled opcode {} from {}", GetOpcodeNameForLogging(static_cast<OpcodeClient>(packet->GetOpcode()))
-                        , GetPlayerInfo());
+                {
+                    // First try AngelScript packet hook
+                    bool handled = false;
+#ifdef ANGELSCRIPT_INTEGRATION
+                    if (sAngelScriptMgr->IsEnabled())
+                    {
+                        handled = sAngelScriptMgr->TriggerPacketReceive(this, *packet, packet->GetOpcode());
+                    }
+#endif
+                    if (!handled)
+                    {
+                        TC_LOG_ERROR("network.opcode", "Received not handled opcode {} from {}", GetOpcodeNameForLogging(static_cast<OpcodeClient>(packet->GetOpcode()))
+                            , GetPlayerInfo());
+                    }
                     break;
+                }
                 case STATUS_IGNORED:
                     break;
             }

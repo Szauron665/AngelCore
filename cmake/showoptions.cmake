@@ -107,6 +107,12 @@ else()
   message("* Use GIT revision hash  : Yes (default)")
 endif()
 
+if(ANGELSCRIPT)
+  message("* Build with AngelScript : Yes (default)")
+else()
+  message("* Build with AngelScript : No")
+endif()
+
 if(NOJEM)
   message("")
   message(" *** NOJEM - WARNING!")

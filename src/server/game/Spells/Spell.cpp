@@ -69,6 +69,9 @@
 #include "VMapManager.h"
 #include "World.h"
 #include "WorldSession.h"
+#ifdef ANGELSCRIPT_INTEGRATION
+#include "AngelScriptMgr.h"
+#endif
 #include <numeric>
 #include <sstream>
 
@@ -5783,8 +5786,20 @@ void Spell::HandleEffects(Unit* pUnitTarget, Item* pItemTarget, GameObject* pGoT
 
     effectValue = CalculateDamage(spellEffectInfo, unitTarget, &variance);
 
-    bool preventDefault = CallScriptEffectHandlers(spellEffectInfo.EffectIndex, mode);
+    // Try AngelScript spell effect handlers FIRST (prioritize over C++ scripts)
+    bool preventDefault = false;
+#ifdef ANGELSCRIPT_INTEGRATION
+    if (sAngelScriptMgr->IsEnabled())
+    {
+        preventDefault = sAngelScriptMgr->TriggerSpellEffect(this, spellEffectInfo.EffectIndex, static_cast<AngelScript::SpellEffectHandleMode>(mode));
+    }
+#endif
 
+    // If not handled by AngelScript, try C++ ScriptMgr
+    if (!preventDefault)
+        preventDefault = CallScriptEffectHandlers(spellEffectInfo.EffectIndex, mode);
+
+    // If neither handled it, use default handler
     if (!preventDefault)
         (this->*SpellEffectHandlers[spellEffectInfo.Effect].Value)();
 }

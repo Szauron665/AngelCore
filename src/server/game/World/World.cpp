@@ -109,6 +109,10 @@
 #include "WorldStateMgr.h"
 #include <zlib.h>
 
+#ifdef ANGELSCRIPT_INTEGRATION
+#include "AngelScriptMgr.h"
+#endif
+
 TC_GAME_API std::atomic<bool> World::m_stopEvent(false);
 TC_GAME_API uint8 World::m_ExitCode = SHUTDOWN_EXIT_CODE;
 
@@ -2075,6 +2079,12 @@ bool World::SetInitialWorldSettings()
     TC_LOG_INFO("server.worldserver", "World initialized in {} minutes {} seconds", startupDuration / 60000, startupDuration % 60000 / 1000);
 
     TC_METRIC_EVENT("events", "World initialized", Trinity::StringFormat("World initialized in {}  minutes {} seconds", startupDuration / 60000, startupDuration % 60000 / 1000));
+
+#ifdef ANGELSCRIPT_INTEGRATION
+    // Initialize AngelScript after world is fully loaded
+    sAngelScriptMgr->Initialize();
+#endif
+
     return true;
 }
 
@@ -2422,6 +2432,14 @@ void World::Update(uint32 diff)
         TC_METRIC_TIMER("world_update_time", TC_METRIC_TAG("type", "Update world scripts"));
         sScriptMgr->OnWorldUpdate(diff);
     }
+
+#ifdef ANGELSCRIPT_INTEGRATION
+    // Update AngelScript engine
+    {
+        TC_METRIC_TIMER("world_update_time", TC_METRIC_TAG("type", "Update AngelScript"));
+        sAngelScriptMgr->TriggerWorldUpdate(diff);
+    }
+#endif
 
     {
         TC_METRIC_TIMER("world_update_time", TC_METRIC_TAG("type", "Update metrics"));

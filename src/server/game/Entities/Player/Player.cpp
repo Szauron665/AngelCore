@@ -145,6 +145,11 @@
 #include "WorldSession.h"
 #include "WorldStateMgr.h"
 #include "WorldStatePackets.h"
+
+#ifdef ANGELSCRIPT_INTEGRATION
+#include "AngelScriptMgr.h"
+#endif
+
 #include <boost/dynamic_bitset.hpp>
 #include <G3D/g3dmath.h>
 #include <sstream>
@@ -30146,6 +30151,15 @@ void Player::SendMovementSetCollisionHeight(float height, WorldPackets::Movement
 
 void Player::SendPlayerChoice(ObjectGuid sender, int32 choiceId)
 {
+    // AngelScript hook point: allows scripts to intercept/override SendPlayerChoice
+#ifdef ANGELSCRIPT_INTEGRATION
+    if (sAngelScriptMgr->IsEnabled())
+    {
+        if (sAngelScriptMgr->TriggerCustomHook_SendPlayerChoice(this, choiceId))
+            return; // Script handled the event, skip default behavior
+    }
+#endif
+
     PlayerChoice const* playerChoice = sObjectMgr->GetPlayerChoice(choiceId);
     if (!playerChoice)
         return;

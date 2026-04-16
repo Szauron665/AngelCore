@@ -1,0 +1,195 @@
+/*
+ * AngelScript Global Functions & World/Math/String API
+ * Print, SendSystemMessage, SendFloatingText, PlaySound, World accessors, etc.
+ */
+
+#ifndef ANGELSCRIPT_INTEGRATION
+    #error "ANGELSCRIPT_INTEGRATION macro must be defined"
+#endif
+
+#ifdef _WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #include <windows.h>
+#endif
+
+#pragma push_macro("IN")
+#pragma push_macro("OUT")
+#pragma push_macro("OPTIONAL")
+#undef IN
+#undef OUT
+#undef OPTIONAL
+
+#include <angelscript.h>
+
+#pragma pop_macro("OPTIONAL")
+#pragma pop_macro("OUT")
+#pragma pop_macro("IN")
+
+#include "Player.h"
+#include "Unit.h"
+#include "Creature.h"
+#include "World.h"
+#include "WorldSession.h"
+#include "ObjectAccessor.h"
+#include "ChatTextBuilder.h"
+#include "Chat.h"
+#include "GameTime.h"
+#include "Log.h"
+#include <cmath>
+#include <string>
+
+namespace AngelScript
+{
+    // Math constants (must be defined before use)
+    static float Math_PI = 3.14159265358979323846f;
+    static float Math_Half_PI = 1.57079632679489661923f;
+
+    // ---- Global utility functions ----
+
+    static void Global_Print(const std::string& msg)
+    {
+        TC_LOG_INFO("angelscript", "{}", msg);
+    }
+
+    static void Global_SendSystemMessage(Player* player, const std::string& msg)
+    {
+        if (player && player->GetSession())
+            ChatHandler(player->GetSession()).PSendSysMessage("%s", msg.c_str());
+    }
+
+    static void Global_SendFloatingText(Player* player, const std::string& text, uint32 /*color*/)
+    {
+        if (!player || !player->GetSession()) return;
+        // Use WorldPacket to send floating combat text
+        // This is a simplified implementation using SendNotification as fallback
+        player->GetSession()->SendNotification("%s", text.c_str());
+    }
+
+    static void Global_PlaySoundToPlayer(Player* player, uint32 soundId)
+    {
+        if (!player) return;
+        player->PlayDirectSound(soundId, player);
+    }
+
+    static void Global_SendWorldText(const std::string& msg)
+    {
+        sWorld->SendServerMessage(SERVER_MSG_STRING, msg);
+    }
+
+    static void Global_SendWorldTextTo(uint32 /*mapId*/, const std::string& msg)
+    {
+        sWorld->SendServerMessage(SERVER_MSG_STRING, msg);
+    }
+
+    // ---- World API wrappers ----
+    static uint32 World_GetTime() { return static_cast<uint32>(GameTime::GetGameTime()); }
+    static uint32 World_GetMSTime() { return getMSTime(); }
+    static uint32 World_GetConfigUInt32(uint32 configId) { return sWorld->getIntConfig(static_cast<WorldIntConfigs>(configId)); }
+    static float World_GetConfigFloat(uint32 configId) { return sWorld->getFloatConfig(static_cast<WorldFloatConfigs>(configId)); }
+    static bool World_GetConfigBool(uint32 configId) { return sWorld->getBoolConfig(static_cast<WorldBoolConfigs>(configId)); }
+    static uint32 World_GetPlayerCount() { return sWorld->GetActiveSessionCount(); }
+    static uint32 World_GetMaxPlayerCount() { return sWorld->GetMaxActiveSessionCount(); }
+
+    // ---- Find player by name ----
+    static Player* Global_FindPlayerByName(const std::string& name)
+    {
+        return ObjectAccessor::FindPlayerByName(name);
+    }
+
+    static Player* Global_FindPlayerByGUID(uint64 guidRaw)
+    {
+        ObjectGuid guid;
+        guid.SetRawValue(0, guidRaw);
+        return ObjectAccessor::FindPlayer(guid);
+    }
+
+    // ---- Math helpers ----
+    static float Math_Abs(float v) { return std::abs(v); }
+    static float Math_Sqrt(float v) { return std::sqrt(v); }
+    static float Math_Sin(float v) { return std::sin(v); }
+    static float Math_Cos(float v) { return std::cos(v); }
+    static float Math_Tan(float v) { return std::tan(v); }
+    static float Math_ATan2(float y, float x) { return std::atan2(y, x); }
+    static float Math_Pow(float base, float exp) { return std::pow(base, exp); }
+    static float Math_Min(float a, float b) { return std::min(a, b); }
+    static float Math_Max(float a, float b) { return std::max(a, b); }
+    static int32 Math_MinInt(int32 a, int32 b) { return std::min(a, b); }
+    static int32 Math_MaxInt(int32 a, int32 b) { return std::max(a, b); }
+    static uint32 Math_MinUInt(uint32 a, uint32 b) { return std::min(a, b); }
+    static uint32 Math_MaxUInt(uint32 a, uint32 b) { return std::max(a, b); }
+    static float Math_Clamp(float v, float lo, float hi) { return std::clamp(v, lo, hi); }
+    static float Math_Dist3D(float x1, float y1, float z1, float x2, float y2, float z2)
+    {
+        float dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
+        return std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    void RegisterGlobalFunctions(asIScriptEngine* _scriptEngine)
+    {
+        int r;
+        // Print / debug
+        r = _scriptEngine->RegisterGlobalFunction("void Print(const string& in)", asFUNCTION(Global_Print), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("void SendSystemMessage(Player@, const string& in)", asFUNCTION(Global_SendSystemMessage), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("void SendFloatingText(Player@, const string& in, uint32)", asFUNCTION(Global_SendFloatingText), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("void PlaySoundToPlayer(Player@, uint32)", asFUNCTION(Global_PlaySoundToPlayer), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("void SendWorldText(const string& in)", asFUNCTION(Global_SendWorldText), asCALL_CDECL);
+
+        // Player finders
+        r = _scriptEngine->RegisterGlobalFunction("Player@ FindPlayerByName(const string& in)", asFUNCTION(Global_FindPlayerByName), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("Player@ FindPlayerByGUID(uint64)", asFUNCTION(Global_FindPlayerByGUID), asCALL_CDECL);
+
+        TC_LOG_INFO("angelscript", "Global functions registered");
+    }
+
+    void RegisterWorldGlobals(asIScriptEngine* _scriptEngine)
+    {
+        // Register World as a global property or namespace functions
+        int r;
+        r = _scriptEngine->RegisterGlobalFunction("uint32 GetWorldTime()", asFUNCTION(World_GetTime), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("uint32 GetMSTime()", asFUNCTION(World_GetMSTime), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("uint32 GetWorldConfigUInt32(uint32)", asFUNCTION(World_GetConfigUInt32), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float GetWorldConfigFloat(uint32)", asFUNCTION(World_GetConfigFloat), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("bool GetWorldConfigBool(uint32)", asFUNCTION(World_GetConfigBool), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("uint32 GetPlayerCount()", asFUNCTION(World_GetPlayerCount), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("uint32 GetMaxPlayerCount()", asFUNCTION(World_GetMaxPlayerCount), asCALL_CDECL);
+
+        TC_LOG_INFO("angelscript", "World globals registered");
+        TC_LOG_INFO("angelscript", "World API registered");
+    }
+
+    void RegisterMathAPI(asIScriptEngine* _scriptEngine)
+    {
+        int r;
+        r = _scriptEngine->RegisterGlobalFunction("float abs(float)", asFUNCTION(Math_Abs), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float sqrt(float)", asFUNCTION(Math_Sqrt), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float sin(float)", asFUNCTION(Math_Sin), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float cos(float)", asFUNCTION(Math_Cos), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float tan(float)", asFUNCTION(Math_Tan), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float atan2(float, float)", asFUNCTION(Math_ATan2), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float pow(float, float)", asFUNCTION(Math_Pow), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float Min(float, float)", asFUNCTION(Math_Min), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float Max(float, float)", asFUNCTION(Math_Max), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("int32 MinI(int32, int32)", asFUNCTION(Math_MinInt), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("int32 MaxI(int32, int32)", asFUNCTION(Math_MaxInt), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("uint32 MinU(uint32, uint32)", asFUNCTION(Math_MinUInt), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("uint32 MaxU(uint32, uint32)", asFUNCTION(Math_MaxUInt), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float Clamp(float, float, float)", asFUNCTION(Math_Clamp), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("float Dist3D(float, float, float, float, float, float)", asFUNCTION(Math_Dist3D), asCALL_CDECL);
+
+        // Constants
+        r = _scriptEngine->RegisterGlobalProperty("const float PI", const_cast<float*>(&Math_PI));
+        r = _scriptEngine->RegisterGlobalProperty("const float HALF_PI", const_cast<float*>(&Math_Half_PI));
+
+        TC_LOG_INFO("angelscript", "Math API registered");
+    }
+
+    void RegisterStringAPI(asIScriptEngine* /*_scriptEngine*/)
+    {
+        // AngelScript's built-in string type is already registered by the stdstring add-on
+        // Just register any extra string utility functions if needed
+        TC_LOG_INFO("angelscript", "String API registered (using built-in std::string)");
+    }
+
+} // namespace AngelScript

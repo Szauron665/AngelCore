@@ -212,6 +212,17 @@ target_link_libraries(scripts
   PUBLIC
     game-interface)
 
+# AngelScript integration for reload command
+if(TARGET angelscript_core)
+  target_link_libraries(scripts
+    PRIVATE
+      angelscript_core)
+  target_compile_definitions(scripts
+    PRIVATE
+      ANGELSCRIPT_INTEGRATION)
+  message(STATUS "Scripts module: AngelScript integration enabled")
+endif()
+
 set_target_properties(scripts
   PROPERTIES
     COMPILE_WARNING_AS_ERROR ${WITH_WARNINGS_AS_ERRORS}

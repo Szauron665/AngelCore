@@ -16,6 +16,11 @@
  */
 
 #include "ScriptMgr.h"
+
+#ifdef ANGELSCRIPT_INTEGRATION
+#include "AngelScriptMgr.h"
+#endif
+
 #include "AchievementMgr.h"
 #include "AreaTrigger.h"
 #include "AreaTriggerAI.h"
@@ -1654,7 +1659,15 @@ InstanceScript* ScriptMgr::CreateInstanceData(InstanceMap* map)
     ASSERT(map);
 
     GET_SCRIPT_RET(InstanceMapScript, map->GetScriptId(), tmpscript, nullptr);
-    return tmpscript->GetInstanceScript(map);
+    InstanceScript* script = tmpscript->GetInstanceScript(map);
+
+    // AngelScript catch-all dispatch
+#ifdef ANGELSCRIPT_INTEGRATION
+    if (!script && sAngelScriptMgr->IsEnabled())
+        script = sAngelScriptMgr->GetInstanceScript(map);
+#endif
+
+    return script;
 }
 
 BattlegroundScript* ScriptMgr::CreateBattlegroundData(BattlegroundMap* map)
@@ -1724,7 +1737,15 @@ CreatureAI* ScriptMgr::GetCreatureAI(Creature* creature)
     ASSERT(creature);
 
     GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, nullptr);
-    return tmpscript->GetAI(creature);
+    CreatureAI* ai = tmpscript->GetAI(creature);
+
+    // AngelScript catch-all dispatch - only if no DB-bound script provided AI
+#ifdef ANGELSCRIPT_INTEGRATION
+    if (!ai && sAngelScriptMgr->IsEnabled())
+        ai = sAngelScriptMgr->GetCreatureAI(creature);
+#endif
+
+    return ai;
 }
 
 bool ScriptMgr::CanCreateGameObjectAI(uint32 scriptId) const
@@ -1737,7 +1758,15 @@ GameObjectAI* ScriptMgr::GetGameObjectAI(GameObject* gameobject)
     ASSERT(gameobject);
 
     GET_SCRIPT_RET(GameObjectScript, gameobject->GetScriptId(), tmpscript, nullptr);
-    return tmpscript->GetAI(gameobject);
+    GameObjectAI* ai = tmpscript->GetAI(gameobject);
+
+    // AngelScript catch-all dispatch
+#ifdef ANGELSCRIPT_INTEGRATION
+    if (!ai && sAngelScriptMgr->IsEnabled())
+        ai = sAngelScriptMgr->GetGameObjectAI(gameobject);
+#endif
+
+    return ai;
 }
 
 bool ScriptMgr::CanCreateAreaTriggerAI(uint32 scriptId) const

@@ -83,6 +83,15 @@ add_subdirectory(dep)
 # add core sources
 add_subdirectory(src)
 
+# add AngelScript integration (if directory exists)
+if(EXISTS ${CMAKE_SOURCE_DIR}/AngelScript)
+  message(STATUS "AngelScript directory found at ${CMAKE_SOURCE_DIR}/AngelScript")
+  add_subdirectory(AngelScript)
+  message(STATUS "AngelScript integration enabled")
+else()
+  message(STATUS "AngelScript integration not found (expected at ${CMAKE_SOURCE_DIR}/AngelScript)")
+endif()
+
 include(CTest)
 if(BUILD_TESTING)
   list(APPEND CMAKE_MODULE_PATH

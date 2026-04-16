@@ -10,6 +10,8 @@
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
+# AngelScript integration - now built from root AngelScript/ directory
+
 CollectIncludeDirectories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC_INCLUDES
@@ -47,6 +49,18 @@ target_link_libraries(game
   PUBLIC
     game-interface)
 
+if(ANGELSCRIPT)
+  # Link with AngelScript libraries built from root AngelScript/ directory
+  target_link_libraries(game
+    PRIVATE
+      angelscript_sdk
+      angelscript_core)
+  
+  target_compile_definitions(game
+    PRIVATE
+      ANGELSCRIPT_INTEGRATION)
+endif()
+
 if(TARGET efsw)
   target_link_libraries(game
     PRIVATE
@@ -69,6 +83,10 @@ if(BUILD_SHARED_LIBS)
       RUNTIME
         DESTINATION "${CMAKE_INSTALL_PREFIX}")
   endif()
+endif()
+
+if(ANGELSCRIPT)
+  # AngelScripts are installed by the root AngelScript/CMakeLists.txt
 endif()
 
 # Generate precompiled header
