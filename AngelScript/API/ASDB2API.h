@@ -14,6 +14,7 @@ class asIScriptEngine;
 namespace AngelScript
 {
     void RegisterDB2API(asIScriptEngine* engine);
+    void RegisterDynamicDB2API(asIScriptEngine* engine);
 }
 
 #endif // ANGELSCRIPT_INTEGRATION

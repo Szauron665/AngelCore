@@ -97,7 +97,7 @@ namespace AngelScript
         return pd;
     }
 
-    static void PD_Release(PacketData* pd)
+    static void PD_Release(PacketData* /*pd*/)
     {
         // No-op since we use asOBJ_NOCOUNT
     }
@@ -165,7 +165,7 @@ namespace AngelScript
         TC_LOG_INFO("angelscript", "Packet API registered");
     }
 
-    void RegisterEnhancedPacketAPI(asIScriptEngine* _scriptEngine)
+    void RegisterEnhancedPacketAPI(asIScriptEngine* /*_scriptEngine*/)
     {
         // Already covered by RegisterPacketAPI — this is the consolidated version
         TC_LOG_INFO("angelscript", "Enhanced Packet API registered (consolidated with Packet API)");

@@ -220,6 +220,7 @@ namespace AngelScript
         void RegisterMathAPI();
         void RegisterStringAPI();
         void RegisterDB2API();
+        void RegisterDynamicDB2API();
         void InitializeDB2Loader();
         void RegisterSharedDataAPI();
         void RegisterScriptClassesAPI();

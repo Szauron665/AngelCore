@@ -150,7 +150,7 @@ void AngelScriptMgr::RegisterTrinityCoreAPI()
     RegisterUnitAPI(); RegisterPlayerAPI(); RegisterCreatureAPI(); RegisterGameObjectAPI();
     RegisterSpellAPI(); RegisterPacketAPI(); RegisterDatabaseAPI(); RegisterGossipAPI();
     RegisterGlobalFunctions(); RegisterWorldAPI(); RegisterUpdateFieldAPI(); RegisterMathAPI(); RegisterStringAPI();
-    RegisterQuestAPI(); RegisterCraftingAPI(); RegisterItemAPI(); RegisterDB2API();
+    RegisterQuestAPI(); RegisterCraftingAPI(); RegisterItemAPI(); RegisterDB2API(); RegisterDynamicDB2API();
     RegisterSharedDataAPI(); RegisterScriptClassesAPI(); RegisterEnhancedPacketAPI();
     RegisterScriptAttributesAPI(); RegisterInstanceAPI(); RegisterBattlegroundAPI();
     RegisterArenaAPI(); RegisterMapAPI(); RegisterGroupGuildAPI(); RegisterItemAuctionAPI();
@@ -175,6 +175,7 @@ void AngelScriptMgr::RegisterQuestAPI()       { _scriptEngine->RegisterGlobalFun
 void AngelScriptMgr::RegisterCraftingAPI()    { _scriptEngine->RegisterGlobalFunction("void RegisterCraftingScript(int, funcdef@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterCraftingScript(static_cast<CraftingHookType>(t), f); }), asCALL_CDECL); }
 void AngelScriptMgr::RegisterItemAPI() {}
 void AngelScriptMgr::RegisterDB2API() { AngelScript::RegisterDB2API(_scriptEngine); }
+void AngelScriptMgr::RegisterDynamicDB2API() { AngelScript::RegisterDynamicDB2API(_scriptEngine); }
 void AngelScriptMgr::InitializeDB2Loader() { /* DB2 data is already loaded by TC at startup — no custom loading needed */ }
 void AngelScriptMgr::RegisterSharedDataAPI() {}
 void AngelScriptMgr::RegisterScriptClassesAPI() {}
@@ -378,7 +379,7 @@ bool AngelScriptMgr::TriggerCustomHook_SendPlayerChoice(Player* player, int32 ch
     return false;
 }
 
-bool AngelScriptMgr::TriggerCustomHook_GetLockedDungeons(Player* player, std::vector<uint32>& lockedDungeons)
+bool AngelScriptMgr::TriggerCustomHook_GetLockedDungeons(Player* player, std::vector<uint32>& /*lockedDungeons*/)
 {
     auto& hooks = _customHooks[static_cast<size_t>(CustomHookType::ON_GET_LOCKED_DUNGEONS)];
     for (auto& func : hooks)
@@ -488,10 +489,10 @@ void AngelScriptMgr::TriggerPacketSend(WorldSession* s, WorldPacket& p, uint32 o
 bool AngelScriptMgr::TriggerPacketReceive(WorldSession* s, uint16 op, WorldPacket& p) { return TriggerPacketReceive(s,p,static_cast<uint32>(op)); }
 void AngelScriptMgr::SendPacketToPlayer(Player* p, uint16 op, const ByteBuffer& data) { if(!p||!p->GetSession())return; WorldPacket pkt(static_cast<uint16>(op)); pkt.append(data.data(),data.size()); p->GetSession()->SendPacket(&pkt); }
 
-void AngelScriptMgr::TriggerCreatureGossipHello(Creature* c, Player* p) { TriggerCreatureHook(CreatureHookType::ON_GOSSIP_HELLO,c); }
-void AngelScriptMgr::TriggerCreatureGossipSelect(Creature* c, Player* p, uint32 s, uint32 a) { TriggerCreatureHook(CreatureHookType::ON_GOSSIP_SELECT,c); }
-void AngelScriptMgr::TriggerGameObjectGossipHello(GameObject* g, Player* p) { TriggerGameObjectHook(GameObjectHookType::ON_GOSSIP_HELLO,g); }
-void AngelScriptMgr::TriggerGameObjectGossipSelect(GameObject* g, Player* p, uint32 s, uint32 a) { TriggerGameObjectHook(GameObjectHookType::ON_GOSSIP_SELECT,g); }
+void AngelScriptMgr::TriggerCreatureGossipHello(Creature* c, Player* /*p*/) { TriggerCreatureHook(CreatureHookType::ON_GOSSIP_HELLO,c); }
+void AngelScriptMgr::TriggerCreatureGossipSelect(Creature* c, Player* /*p*/, uint32 /*s*/, uint32 /*a*/) { TriggerCreatureHook(CreatureHookType::ON_GOSSIP_SELECT,c); }
+void AngelScriptMgr::TriggerGameObjectGossipHello(GameObject* g, Player* /*p*/) { TriggerGameObjectHook(GameObjectHookType::ON_GOSSIP_HELLO,g); }
+void AngelScriptMgr::TriggerGameObjectGossipSelect(GameObject* g, Player* /*p*/, uint32 /*s*/, uint32 /*a*/) { TriggerGameObjectHook(GameObjectHookType::ON_GOSSIP_SELECT,g); }
 
 } // namespace AngelScript
 #endif // ANGELSCRIPT_INTEGRATION

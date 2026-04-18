@@ -89,11 +89,10 @@ namespace AngelScript
         return summon; // TempSummon derives from Creature, implicit conversion works
     }
 
-    static Creature* SummonCreatureAtLoc(uint32 entry, uint32 mapId, float x, float y, float z, float o, uint32 summonType, uint32 despawnTimer)
+    static Creature* SummonCreatureAtLoc(uint32 /*entry*/, uint32 mapId, float /*x*/, float /*y*/, float /*z*/, float /*o*/, uint32 /*summonType*/, uint32 despawnTimer)
     {
         Map* map = sMapMgr->FindMap(mapId, 0);
         if (!map) return nullptr;
-        TempSummonType type = static_cast<TempSummonType>(summonType);
         Milliseconds despawnMs(despawnTimer);
         // Summon via map - need a summoner; use the map's world object
         return nullptr; // TODO: implement map-level summoning
@@ -115,7 +114,7 @@ namespace AngelScript
         return tmpl ? tmpl->faction : 0;
     }
 
-    static uint32 ObjectMgr_GetCreatureLevel(uint32 entry)
+    static uint32 ObjectMgr_GetCreatureLevel(uint32 /*entry*/)
     {
         // Creature level is determined by difficulty settings, not template directly
         // Return 0 as level is dynamic based on spawn

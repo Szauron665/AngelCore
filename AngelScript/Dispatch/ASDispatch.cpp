@@ -89,7 +89,7 @@ namespace AngelScript
             sAngelScriptMgr->TriggerPlayerDuelEnd(winner, loser, type);
     }
 
-    void ASPlayerScriptDispatch::OnSpellCast(Player* player, Spell* spell, bool /*skipCheck*/)
+    void ASPlayerScriptDispatch::OnSpellCast(Player* /*player*/, Spell* spell, bool /*skipCheck*/)
     {
         if (sAngelScriptMgr->IsEnabled())
             sAngelScriptMgr->TriggerSpellHook(SpellHookType::ON_CAST, spell);
@@ -125,7 +125,7 @@ namespace AngelScript
             sAngelScriptMgr->TriggerPlayerUpdateZone(player, newZone, newArea);
     }
 
-    void ASPlayerScriptDispatch::OnMapChanged(Player* player)
+    void ASPlayerScriptDispatch::OnMapChanged(Player* /*player*/)
     {
         if (sAngelScriptMgr->IsEnabled())
         {
@@ -199,7 +199,7 @@ namespace AngelScript
             sAngelScriptMgr->TriggerWorldUpdate(diff);
     }
 
-    void ASWorldScriptDispatch::OnConfigLoad(bool reload)
+    void ASWorldScriptDispatch::OnConfigLoad(bool /*reload*/)
     {
         if (sAngelScriptMgr->IsEnabled())
             sAngelScriptMgr->TriggerWorldHook(WorldHookType::ON_CONFIG_LOAD);
@@ -264,7 +264,7 @@ namespace AngelScript
     ASQuestScriptDispatch::ASQuestScriptDispatch()
         : QuestScript("AS_QuestDispatch") {}
 
-    void ASQuestScriptDispatch::OnQuestStatusChange(Player* player, Quest const* quest, QuestStatus oldStatus, QuestStatus newStatus)
+    void ASQuestScriptDispatch::OnQuestStatusChange(Player* player, Quest const* quest, QuestStatus /*oldStatus*/, QuestStatus /*newStatus*/)
     {
         if (sAngelScriptMgr->IsEnabled() && quest)
             sAngelScriptMgr->TriggerQuestStatusChange(player, quest->GetQuestId());

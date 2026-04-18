@@ -47,7 +47,7 @@ namespace AngelScript
 
     // ---- Gossip wrapper functions ----
 
-    static void Gossip_StartMenu(Player* player, uint32 sender, uint32 actionMenu)
+    static void Gossip_StartMenu(Player* player, uint32 /*sender*/, uint32 actionMenu)
     {
         if (!player) return;
         player->PlayerTalkClass->ClearMenus();

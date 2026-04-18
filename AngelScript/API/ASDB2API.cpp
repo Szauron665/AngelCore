@@ -41,7 +41,10 @@
 #include "SpellMgr.h"
 #include "ObjectMgr.h"
 #include "Log.h"
+#include "../ASDB2Schema.h"
+#include "../ASDB2Storage.h"
 #include <string>
+#include <memory>
 
 namespace AngelScript
 {
@@ -478,4 +481,273 @@ namespace AngelScript
         TC_LOG_INFO("angelscript", "DB2 API registered (shared TC stores)");
     }
 
+    // ========================================================================
+    // NEW: Dynamic DB2 Loading API
+    // Allows AngelScript to load custom DB2 files with runtime-defined schemas
+    // ========================================================================
+
+    // Schema creation
+    static ASDB2Schema* DB2_CreateSchema(const std::string& name)
+    {
+        auto schema = std::make_shared<ASDB2Schema>(name);
+        sASDB2SchemaRegistry->RegisterSchema(schema);
+        // Return raw pointer - AngelScript will use reference counting
+        return schema.get();
+    }
+
+    static void DB2_SchemaAddInt8(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddInt8(name);
+    }
+
+    static void DB2_SchemaAddUInt8(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddUInt8(name);
+    }
+
+    static void DB2_SchemaAddInt16(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddInt16(name);
+    }
+
+    static void DB2_SchemaAddUInt16(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddUInt16(name);
+    }
+
+    static void DB2_SchemaAddInt32(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddInt32(name);
+    }
+
+    static void DB2_SchemaAddUInt32(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddUInt32(name);
+    }
+
+    static void DB2_SchemaAddInt64(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddInt64(name);
+    }
+
+    static void DB2_SchemaAddUInt64(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddUInt64(name);
+    }
+
+    static void DB2_SchemaAddFloat(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddFloat(name);
+    }
+
+    static void DB2_SchemaAddDouble(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddDouble(name);
+    }
+
+    static void DB2_SchemaAddString(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddString(name);
+    }
+
+    static void DB2_SchemaAddBool(ASDB2Schema* schema, const std::string& name)
+    {
+        if (schema) schema->AddBool(name);
+    }
+
+    static void DB2_SchemaFinalize(ASDB2Schema* schema)
+    {
+        if (schema) schema->Finalize();
+    }
+
+    // Storage loading
+    static uint32 DB2_LoadStorage(const std::string& name, const std::string& filePath, ASDB2Schema* schema)
+    {
+        if (!schema)
+        {
+            TC_LOG_ERROR("angelscript.db2", "Cannot load storage '{}': null schema", name);
+            return 0;
+        }
+
+        // Share ownership with registry
+        auto schemaPtr = std::make_shared<ASDB2Schema>(schema->GetName());
+        *schemaPtr = *schema; // Copy schema data
+        
+        return sASDB2StorageRegistry->CreateStorage(name, filePath, schemaPtr);
+    }
+
+    static ASDB2Storage* DB2_GetStorage(const std::string& name)
+    {
+        return sASDB2StorageRegistry->GetStorage(name);
+    }
+
+    static ASDB2Storage* DB2_GetStorageByHandle(uint32 handle)
+    {
+        return sASDB2StorageRegistry->GetStorage(handle);
+    }
+
+    static void DB2_UnloadStorage(const std::string& name)
+    {
+        sASDB2StorageRegistry->RemoveStorage(name);
+    }
+
+    static void DB2_UnloadStorageByHandle(uint32 handle)
+    {
+        sASDB2StorageRegistry->RemoveStorage(handle);
+    }
+
+    // Record access
+    static bool DB2_StorageHasRecord(ASDB2Storage* storage, uint32 id)
+    {
+        return storage ? storage->HasRecord(id) : false;
+    }
+
+    static ASDB2DynamicRecord* DB2_StorageGetRecord(ASDB2Storage* storage, uint32 id)
+    {
+        if (!storage) return nullptr;
+        // Return non-const pointer for AngelScript
+        return const_cast<ASDB2DynamicRecord*>(storage->GetRecord(id));
+    }
+
+    static uint32 DB2_StorageGetNumRows(ASDB2Storage* storage)
+    {
+        return storage ? storage->GetNumRows() : 0;
+    }
+
+    // Record field access
+    static uint32 DB2_RecordGetUInt32(ASDB2DynamicRecord* record, const std::string& fieldName)
+    {
+        return record ? record->GetUInt32(fieldName) : 0;
+    }
+
+    static int32 DB2_RecordGetInt32(ASDB2DynamicRecord* record, const std::string& fieldName)
+    {
+        return record ? record->GetInt32(fieldName) : 0;
+    }
+
+    static float DB2_RecordGetFloat(ASDB2DynamicRecord* record, const std::string& fieldName)
+    {
+        return record ? record->GetFloat(fieldName) : 0.0f;
+    }
+
+    static uint64 DB2_RecordGetUInt64(ASDB2DynamicRecord* record, const std::string& fieldName)
+    {
+        return record ? record->GetUInt64(fieldName) : 0;
+    }
+
+    static int64 DB2_RecordGetInt64(ASDB2DynamicRecord* record, const std::string& fieldName)
+    {
+        return record ? record->GetInt64(fieldName) : 0;
+    }
+
+    static std::string DB2_RecordGetString(ASDB2DynamicRecord* record, const std::string& fieldName)
+    {
+        return record ? record->GetString(fieldName) : "";
+    }
+
+    static bool DB2_RecordGetBool(ASDB2DynamicRecord* record, const std::string& fieldName)
+    {
+        return record ? record->GetBool(fieldName) : false;
+    }
+
+    static bool DB2_RecordHasField(ASDB2DynamicRecord* record, const std::string& fieldName)
+    {
+        return record ? record->HasField(fieldName) : false;
+    }
+
+    static uint32 DB2_RecordGetFieldCount(ASDB2DynamicRecord* record)
+    {
+        return record ? record->GetFieldCount() : 0;
+    }
+
+    void RegisterDynamicDB2API(asIScriptEngine* engine)
+    {
+        int r;
+
+        // ---- DB2Schema class ----
+        r = engine->RegisterObjectType("DB2Schema", 0, asOBJ_REF | asOBJ_NOCOUNT);
+        
+        // Schema factory
+        r = engine->RegisterGlobalFunction("DB2Schema@ CreateDB2Schema(const string& in)", 
+            asFUNCTION(DB2_CreateSchema), asCALL_CDECL);
+
+        // Schema field addition
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddInt8(const string& in)", 
+            asFUNCTION(DB2_SchemaAddInt8), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddUInt8(const string& in)", 
+            asFUNCTION(DB2_SchemaAddUInt8), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddInt16(const string& in)", 
+            asFUNCTION(DB2_SchemaAddInt16), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddUInt16(const string& in)", 
+            asFUNCTION(DB2_SchemaAddUInt16), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddInt32(const string& in)", 
+            asFUNCTION(DB2_SchemaAddInt32), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddUInt32(const string& in)", 
+            asFUNCTION(DB2_SchemaAddUInt32), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddInt64(const string& in)", 
+            asFUNCTION(DB2_SchemaAddInt64), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddUInt64(const string& in)", 
+            asFUNCTION(DB2_SchemaAddUInt64), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddFloat(const string& in)", 
+            asFUNCTION(DB2_SchemaAddFloat), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddDouble(const string& in)", 
+            asFUNCTION(DB2_SchemaAddDouble), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddString(const string& in)", 
+            asFUNCTION(DB2_SchemaAddString), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Schema", "void AddBool(const string& in)", 
+            asFUNCTION(DB2_SchemaAddBool), asCALL_CDECL_OBJFIRST);
+
+        r = engine->RegisterObjectMethod("DB2Schema", "void Finalize()", 
+            asFUNCTION(DB2_SchemaFinalize), asCALL_CDECL_OBJFIRST);
+
+        // ---- DB2Storage class ----
+        r = engine->RegisterObjectType("DB2Storage", 0, asOBJ_REF | asOBJ_NOCOUNT);
+
+        // Storage loading/management
+        r = engine->RegisterGlobalFunction("uint32 LoadDB2Storage(const string& in, const string& in, DB2Schema@)", 
+            asFUNCTION(DB2_LoadStorage), asCALL_CDECL);
+        r = engine->RegisterGlobalFunction("DB2Storage@ GetDB2Storage(const string& in)", 
+            asFUNCTION(DB2_GetStorage), asCALL_CDECL);
+        r = engine->RegisterGlobalFunction("DB2Storage@ GetDB2StorageByHandle(uint32)", 
+            asFUNCTION(DB2_GetStorageByHandle), asCALL_CDECL);
+        r = engine->RegisterGlobalFunction("void UnloadDB2Storage(const string& in)", 
+            asFUNCTION(DB2_UnloadStorage), asCALL_CDECL);
+        r = engine->RegisterGlobalFunction("void UnloadDB2StorageByHandle(uint32)", 
+            asFUNCTION(DB2_UnloadStorageByHandle), asCALL_CDECL);
+
+        // Storage methods
+        r = engine->RegisterObjectMethod("DB2Storage", "bool HasRecord(uint32)", 
+            asFUNCTION(DB2_StorageHasRecord), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Storage", "DB2Record@ GetRecord(uint32)", 
+            asFUNCTION(DB2_StorageGetRecord), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Storage", "uint32 GetNumRows()", 
+            asFUNCTION(DB2_StorageGetNumRows), asCALL_CDECL_OBJFIRST);
+
+        // ---- DB2Record class ----
+        r = engine->RegisterObjectType("DB2Record", 0, asOBJ_REF | asOBJ_NOCOUNT);
+
+        // Record field access
+        r = engine->RegisterObjectMethod("DB2Record", "uint32 GetUInt32(const string& in)", 
+            asFUNCTION(DB2_RecordGetUInt32), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Record", "int32 GetInt32(const string& in)", 
+            asFUNCTION(DB2_RecordGetInt32), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Record", "float GetFloat(const string& in)", 
+            asFUNCTION(DB2_RecordGetFloat), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Record", "uint64 GetUInt64(const string& in)", 
+            asFUNCTION(DB2_RecordGetUInt64), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Record", "int64 GetInt64(const string& in)", 
+            asFUNCTION(DB2_RecordGetInt64), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Record", "string GetString(const string& in)", 
+            asFUNCTION(DB2_RecordGetString), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Record", "bool GetBool(const string& in)", 
+            asFUNCTION(DB2_RecordGetBool), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Record", "bool HasField(const string& in)", 
+            asFUNCTION(DB2_RecordHasField), asCALL_CDECL_OBJFIRST);
+        r = engine->RegisterObjectMethod("DB2Record", "uint32 GetFieldCount()", 
+            asFUNCTION(DB2_RecordGetFieldCount), asCALL_CDECL_OBJFIRST);
+
+        TC_LOG_INFO("angelscript", "Dynamic DB2 API registered");
+    }
+
 } // namespace AngelScript
+
