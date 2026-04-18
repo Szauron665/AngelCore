@@ -251,14 +251,13 @@ bool AngelScriptMgr::CompileScript(const std::string& filename, const std::strin
     public:
         std::vector<std::string> errors;
         std::vector<std::string> warnings;
-        void Callback(asSMessageInfo* msg, void* userPtr)
+        void Callback(asSMessageInfo* msg)
         {
-            ErrorCollector* self = reinterpret_cast<ErrorCollector*>(userPtr);
             std::string sev;
             switch (msg->type)
             {
-            case asMSGTYPE_ERROR:   sev = "ERR"; self->errors.push_back(fmt::format("{}({}): {}", msg->section, msg->row, msg->message)); break;
-            case asMSGTYPE_WARNING: sev = "WRN"; self->warnings.push_back(fmt::format("{}({}): {}", msg->section, msg->row, msg->message)); break;
+            case asMSGTYPE_ERROR:   sev = "ERR"; errors.push_back(fmt::format("{}({}): {}", msg->section, msg->row, msg->message)); break;
+            case asMSGTYPE_WARNING: sev = "WRN"; warnings.push_back(fmt::format("{}({}): {}", msg->section, msg->row, msg->message)); break;
             default:                sev = "INF"; break;
             }
             TC_LOG_INFO("angelscript", "[AS-{}] {}({}): {}", sev, msg->section, msg->row, msg->message);
