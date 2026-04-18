@@ -68,13 +68,14 @@ bool AngelScriptMgr::InitializeAndReturn() { Initialize(); return _enabled; }
 void AngelScriptMgr::Initialize()
 {
     if (_enabled) return;
-    TC_LOG_INFO("angelscript", "Initializing AngelScript...");
-    if (!SetupEngine()) { TC_LOG_ERROR("angelscript", "Failed to setup engine"); return; }
+    TC_LOG_INFO("server.loading", ">> AngelScript: initializing (script path: '{}')", _scriptPath);
+    if (!SetupEngine()) { TC_LOG_ERROR("server.loading", ">> AngelScript: engine setup FAILED"); return; }
     InitializeDB2Loader();
-    if (!LoadScripts()) TC_LOG_WARN("angelscript", "Some scripts failed to load");
+    if (!LoadScripts())
+        TC_LOG_WARN("server.loading", ">> AngelScript: some scripts failed to load (check log for details)");
     _enabled = true;
     RegisterDispatchScripts();
-    TC_LOG_INFO("angelscript", "AngelScript initialized");
+    TC_LOG_INFO("server.loading", ">> AngelScript: initialized with {} module(s) loaded", _modules.size());
     TriggerWorldHook(WorldHookType::ON_STARTUP);
 }
 
@@ -131,8 +132,12 @@ bool AngelScriptMgr::SetupEngine()
     _scriptEngine = asCreateScriptEngine();
     if (!_scriptEngine) return false;
     _scriptEngine->SetMessageCallback(asFUNCTION(+[](const asSMessageInfo* msg, void*) {
-        const char* t = msg->type == asMSGTYPE_WARNING ? "WARN" : msg->type == asMSGTYPE_INFORMATION ? "INFO" : "ERR";
-        TC_LOG_INFO("angelscript", "{} ({}:{}): {}", t, msg->section, msg->row, msg->message);
+        switch (msg->type)
+        {
+        case asMSGTYPE_ERROR:       TC_LOG_ERROR("angelscript", "[AS-ERR] {}({}): {}", msg->section, msg->row, msg->message); break;
+        case asMSGTYPE_WARNING:     TC_LOG_WARN ("angelscript", "[AS-WRN] {}({}): {}", msg->section, msg->row, msg->message); break;
+        case asMSGTYPE_INFORMATION: TC_LOG_INFO ("angelscript", "[AS-INF] {}({}): {}", msg->section, msg->row, msg->message); break;
+        }
     }), nullptr, asCALL_CDECL);
     RegisterStandardAddons(); RegisterTrinityCoreAPI();
     _scriptBuilder = new CScriptBuilder(); _scriptBuilder->StartNewModule(_scriptEngine, "trinitycore");
@@ -147,10 +152,55 @@ void AngelScriptMgr::RegisterStandardAddons()
 
 void AngelScriptMgr::RegisterTrinityCoreAPI()
 {
-    RegisterUnitAPI(); RegisterPlayerAPI(); RegisterCreatureAPI(); RegisterGameObjectAPI();
+    // ---- Pre-register all reference types ----
+    // Types must exist before ANY funcdef or method referencing them is registered.
+    // Player/Creature/GameObject reference Unit@ and vice-versa (circular dependency).
+    // Each API module also calls RegisterObjectType; asALREADY_REGISTERED is tolerated.
+    for (char const* t : { "Unit", "Player", "Creature", "GameObject", "Spell",
+                           "PacketData", "QueryResult", "WorldObject",
+                           "DB2Schema", "DB2Storage", "DB2Record" })
+        _scriptEngine->RegisterObjectType(t, 0, asOBJ_REF | asOBJ_NOCOUNT);
+
+    // ---- Funcdefs (must come AFTER type pre-registration since they reference types) ----
+    _scriptEngine->RegisterFuncdef("void ScriptCallback()");
+    _scriptEngine->RegisterFuncdef("void PlayerCallback(Player@)");
+    _scriptEngine->RegisterFuncdef("void CreatureCallback(Creature@)");
+    _scriptEngine->RegisterFuncdef("void SpellCallback(Spell@)");
+    _scriptEngine->RegisterFuncdef("void UnitCallback(Unit@)");
+    _scriptEngine->RegisterFuncdef("void GameObjectCallback(GameObject@)");
+    _scriptEngine->RegisterFuncdef("void PlayerPlayerCallback(Player@, Player@)");
+
+    RegisterPlayerAPI(); RegisterCreatureAPI(); RegisterGameObjectAPI(); RegisterUnitAPI();
     RegisterSpellAPI(); RegisterPacketAPI(); RegisterDatabaseAPI(); RegisterGossipAPI();
     RegisterGlobalFunctions(); RegisterWorldAPI(); RegisterUpdateFieldAPI(); RegisterMathAPI(); RegisterStringAPI();
     RegisterQuestAPI(); RegisterCraftingAPI(); RegisterItemAPI(); RegisterDB2API(); RegisterDynamicDB2API();
+
+    // ---- Hook registration functions exposed to scripts ----
+    // No-arg callbacks (ScriptCallback)
+    _scriptEngine->RegisterGlobalFunction("void RegisterWorldScript(int, ScriptCallback@)",        asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterWorldScript(static_cast<WorldHookType>(t), f); }), asCALL_CDECL);
+    _scriptEngine->RegisterGlobalFunction("void RegisterBattlegroundScript(int, ScriptCallback@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterBattlegroundScript(static_cast<BattlegroundHookType>(t), f); }), asCALL_CDECL);
+    _scriptEngine->RegisterGlobalFunction("void RegisterPacketScript(int, ScriptCallback@)",       asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterPacketScript(static_cast<PacketHookType>(t), f); }), asCALL_CDECL);
+
+    // Player callbacks
+    _scriptEngine->RegisterGlobalFunction("void RegisterPlayerScript(int, PlayerCallback@)",       asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterPlayerScript(static_cast<PlayerHookType>(t), f); }), asCALL_CDECL);
+    _scriptEngine->RegisterGlobalFunction("void RegisterInstanceScript(int, PlayerCallback@)",     asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterInstanceScript(static_cast<InstanceHookType>(t), f); }), asCALL_CDECL);
+
+    // Creature callbacks
+    _scriptEngine->RegisterGlobalFunction("void RegisterCreatureScript(int, CreatureCallback@)",   asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterCreatureScript(static_cast<CreatureHookType>(t), f); }), asCALL_CDECL);
+    _scriptEngine->RegisterGlobalFunction("void RegisterInstanceScript(int, CreatureCallback@)",   asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterInstanceScript(static_cast<InstanceHookType>(t), f); }), asCALL_CDECL);
+
+    // GameObject callbacks
+    _scriptEngine->RegisterGlobalFunction("void RegisterGameObjectScript(int, GameObjectCallback@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterGameObjectScript(static_cast<GameObjectHookType>(t), f); }), asCALL_CDECL);
+
+    // Spell callbacks
+    _scriptEngine->RegisterGlobalFunction("void RegisterSpellHook(int, SpellCallback@)",           asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterSpellHook(static_cast<SpellHookType>(t), f); }), asCALL_CDECL);
+    _scriptEngine->RegisterGlobalFunction("void RegisterSpellEffectHandler(uint32, uint8, SpellCallback@)", asFUNCTION(+[](uint32 id, uint8 idx, asIScriptFunction* f){ sAngelScriptMgr->RegisterSpellEffectHandler(id, idx, f); }), asCALL_CDECL);
+
+    // Unit callbacks
+    _scriptEngine->RegisterGlobalFunction("void RegisterPlayerScript(int, UnitCallback@)",         asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterPlayerScript(static_cast<PlayerHookType>(t), f); }), asCALL_CDECL);
+
+    // Player+Player callbacks
+    _scriptEngine->RegisterGlobalFunction("void RegisterPlayerScript(int, PlayerPlayerCallback@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterPlayerScript(static_cast<PlayerHookType>(t), f); }), asCALL_CDECL);
     RegisterSharedDataAPI(); RegisterScriptClassesAPI(); RegisterEnhancedPacketAPI();
     RegisterScriptAttributesAPI(); RegisterInstanceAPI(); RegisterBattlegroundAPI();
     RegisterArenaAPI(); RegisterMapAPI(); RegisterGroupGuildAPI(); RegisterItemAuctionAPI();
@@ -171,8 +221,8 @@ void AngelScriptMgr::RegisterWorldAPI()       { AngelScript::RegisterWorldAPI(_s
 void AngelScriptMgr::RegisterUpdateFieldAPI()  { AngelScript::RegisterUpdateFieldAPI(_scriptEngine); }
 void AngelScriptMgr::RegisterMathAPI()        { AngelScript::RegisterMathAPI(_scriptEngine); }
 void AngelScriptMgr::RegisterStringAPI()      { AngelScript::RegisterStringAPI(_scriptEngine); }
-void AngelScriptMgr::RegisterQuestAPI()       { _scriptEngine->RegisterGlobalFunction("void RegisterQuestScript(int, funcdef@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterQuestScript(static_cast<QuestHookType>(t), f); }), asCALL_CDECL); }
-void AngelScriptMgr::RegisterCraftingAPI()    { _scriptEngine->RegisterGlobalFunction("void RegisterCraftingScript(int, funcdef@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterCraftingScript(static_cast<CraftingHookType>(t), f); }), asCALL_CDECL); }
+void AngelScriptMgr::RegisterQuestAPI()       { _scriptEngine->RegisterGlobalFunction("void RegisterQuestScript(int, ScriptCallback@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterQuestScript(static_cast<QuestHookType>(t), f); }), asCALL_CDECL); }
+void AngelScriptMgr::RegisterCraftingAPI()    { _scriptEngine->RegisterGlobalFunction("void RegisterCraftingScript(int, ScriptCallback@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterCraftingScript(static_cast<CraftingHookType>(t), f); }), asCALL_CDECL); }
 void AngelScriptMgr::RegisterItemAPI() {}
 void AngelScriptMgr::RegisterDB2API() { AngelScript::RegisterDB2API(_scriptEngine); }
 void AngelScriptMgr::RegisterDynamicDB2API() { AngelScript::RegisterDynamicDB2API(_scriptEngine); }
@@ -228,12 +278,38 @@ InstanceScript* AngelScriptMgr::GetInstanceScript(InstanceMap* m)
 bool AngelScriptMgr::LoadScripts()
 {
     if (!_scriptEngine) return false;
-    if (!fs::exists(_scriptPath)) { fs::create_directories(_scriptPath); return false; }
+
+    // Resolve script path relative to the binary directory if not absolute
+    fs::path scriptDir = fs::path(_scriptPath);
+    if (!scriptDir.is_absolute())
+    {
+        // Get the directory containing the running executable
+        fs::path exeDir;
+#ifdef _WIN32
+        char exeBuf[MAX_PATH];
+        GetModuleFileNameA(nullptr, exeBuf, MAX_PATH);
+        exeDir = fs::path(exeBuf).parent_path();
+#else
+        exeDir = fs::read_symlink("/proc/self/exe").parent_path();
+#endif
+        scriptDir = exeDir / scriptDir;
+        _scriptPath = scriptDir.string();
+    }
+
+    TC_LOG_INFO("server.loading", ">> AngelScript: looking for scripts in '{}'", fs::absolute(_scriptPath).string());
+
+    if (!fs::exists(_scriptPath))
+    {
+        TC_LOG_WARN("server.loading", ">> AngelScript: script directory '{}' does not exist, creating it", _scriptPath);
+        fs::create_directories(_scriptPath);
+        return false;
+    }
+
     uint32 ok=0,fail=0;
     for (auto& e : fs::recursive_directory_iterator(_scriptPath))
         if (e.is_regular_file() && e.path().extension()==".as")
             CompileScript(e.path().string(), fs::relative(e.path(),_scriptPath).string()) ? ok++ : fail++;
-    TC_LOG_INFO("angelscript","Scripts: {} ok, {} failed",ok,fail);
+    TC_LOG_INFO("server.loading", ">> AngelScript: compiled {} script(s), {} failed", ok, fail);
     return fail==0;
 }
 bool AngelScriptMgr::LoadAllScripts() { return LoadScripts(); }
@@ -285,11 +361,11 @@ bool AngelScriptMgr::CompileScript(const std::string& filename, const std::strin
     r = builder.BuildModule();
     if (r < 0)
     {
-        TC_LOG_ERROR("angelscript", "[DEFENSE] Script '{}' failed to compile ({} errors, {} warnings):", filename, collector.errors.size(), collector.warnings.size());
+        TC_LOG_ERROR("server.loading", ">> AngelScript: '{}' FAILED to compile ({} errors, {} warnings)", filename, collector.errors.size(), collector.warnings.size());
         for (auto const& e : collector.errors)
-            TC_LOG_ERROR("angelscript", "  ERROR: {}", e);
+            TC_LOG_ERROR("server.loading", ">>     {}", e);
         for (auto const& w : collector.warnings)
-            TC_LOG_WARN("angelscript", "  WARNING: {}", w);
+            TC_LOG_WARN ("server.loading", ">>     {}", w);
         // Discard the failed module to free resources
         asIScriptModule* badMod = _scriptEngine->GetModule(moduleName.c_str());
         if (badMod) badMod->Discard();

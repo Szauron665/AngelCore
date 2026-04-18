@@ -162,13 +162,7 @@ namespace AngelScript
     void RegisterMathAPI(asIScriptEngine* _scriptEngine)
     {
         int r;
-        r = _scriptEngine->RegisterGlobalFunction("float abs(float)", asFUNCTION(Math_Abs), asCALL_CDECL);
-        r = _scriptEngine->RegisterGlobalFunction("float sqrt(float)", asFUNCTION(Math_Sqrt), asCALL_CDECL);
-        r = _scriptEngine->RegisterGlobalFunction("float sin(float)", asFUNCTION(Math_Sin), asCALL_CDECL);
-        r = _scriptEngine->RegisterGlobalFunction("float cos(float)", asFUNCTION(Math_Cos), asCALL_CDECL);
-        r = _scriptEngine->RegisterGlobalFunction("float tan(float)", asFUNCTION(Math_Tan), asCALL_CDECL);
-        r = _scriptEngine->RegisterGlobalFunction("float atan2(float, float)", asFUNCTION(Math_ATan2), asCALL_CDECL);
-        r = _scriptEngine->RegisterGlobalFunction("float pow(float, float)", asFUNCTION(Math_Pow), asCALL_CDECL);
+        // abs/sqrt/sin/cos/tan/atan2/pow are provided by the scriptmath add-on
         r = _scriptEngine->RegisterGlobalFunction("float Min(float, float)", asFUNCTION(Math_Min), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("float Max(float, float)", asFUNCTION(Math_Max), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("int32 MinI(int32, int32)", asFUNCTION(Math_MinInt), asCALL_CDECL);

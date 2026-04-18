@@ -106,14 +106,11 @@ namespace AngelScript
     {
         // Register PacketData type
         int r = _scriptEngine->RegisterObjectType("PacketData", 0, asOBJ_REF | asOBJ_NOCOUNT);
-        if (r < 0)
+        if (r < 0 && r != asALREADY_REGISTERED)
         {
             TC_LOG_ERROR("angelscript", "Failed to register PacketData type: {}", r);
             return;
         }
-
-        // Factory
-        r = _scriptEngine->RegisterObjectBehaviour("PacketData", asBEHAVE_FACTORY, "PacketData@ PacketData(uint32)", asFUNCTION(PD_Factory), asCALL_CDECL);
 
         // Read methods
         r = _scriptEngine->RegisterObjectMethod("PacketData", "uint8 ReadUInt8()", asFUNCTION(PD_ReadUInt8), asCALL_CDECL_OBJFIRST);

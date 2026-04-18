@@ -250,10 +250,27 @@ namespace AngelScript
         // WorldObject is the base class for Unit, Creature, Player, GameObject
         // AngelScript supports interface inheritance via implicit casts
         r = _scriptEngine->RegisterObjectType("WorldObject", 0, asOBJ_REF | asOBJ_NOCOUNT);
+        if (r < 0 && r != asALREADY_REGISTERED)
+        {
+            TC_LOG_ERROR("angelscript", "Failed to register WorldObject type: {}", r);
+            return;
+        }
 
-        // Register implicit casts from derived types to WorldObject
+        // Register implicit casts from derived types to base types
+        // opImplCast enables automatic conversion (e.g. Player@ → Unit@ in function args)
+        // opCast is explicit only (requires cast<T>(obj))
+
+        // Player -> Unit, Creature -> Unit, GameObject -> Unit (derived to Unit)
+        r = _scriptEngine->RegisterObjectMethod("Player", "Unit@ opImplCast()", asFUNCTION((+[](Player* p) -> Unit* { return p; })), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("Creature", "Unit@ opImplCast()", asFUNCTION((+[](Creature* c) -> Unit* { return c; })), asCALL_CDECL_OBJFIRST);
+
         // Unit -> WorldObject, Player -> WorldObject, Creature -> WorldObject, GameObject -> WorldObject
-        r = _scriptEngine->RegisterObjectMethod("Unit", "WorldObject@ opCast()", asFUNCTION((+[](Unit* u) -> WorldObject* { return u; })), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("Unit", "WorldObject@ opImplCast()", asFUNCTION((+[](Unit* u) -> WorldObject* { return u; })), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("Player", "WorldObject@ opImplCast()", asFUNCTION((+[](Player* p) -> WorldObject* { return p; })), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("Creature", "WorldObject@ opImplCast()", asFUNCTION((+[](Creature* c) -> WorldObject* { return c; })), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("GameObject", "WorldObject@ opImplCast()", asFUNCTION((+[](GameObject* g) -> WorldObject* { return g; })), asCALL_CDECL_OBJFIRST);
+
+        // WorldObject -> derived (explicit cast only — not all WorldObjects are Players)
         r = _scriptEngine->RegisterObjectMethod("WorldObject", "Unit@ opCast()", asFUNCTION((+[](WorldObject* w) -> Unit* { return w->ToUnit(); })), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("WorldObject", "Player@ opCast()", asFUNCTION((+[](WorldObject* w) -> Player* { return w->ToPlayer(); })), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("WorldObject", "Creature@ opCast()", asFUNCTION((+[](WorldObject* w) -> Creature* { return w->ToCreature(); })), asCALL_CDECL_OBJFIRST);
@@ -305,15 +322,14 @@ namespace AngelScript
         r = _scriptEngine->RegisterGlobalFunction("bool GetWorldBoolConfig(uint32)", asFUNCTION(World_GetBoolConfig), asCALL_CDECL);
 
         // ---- Object Accessor ----
-        r = _scriptEngine->RegisterGlobalFunction("Player@ FindPlayerByName(const string& in)", asFUNCTION(FindPlayerByName), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("Creature@ GetCreatureByGuid(Unit@, uint64)", asFUNCTION(GetCreatureByGuid), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("GameObject@ GetGameObjectByGuid(Unit@, uint64)", asFUNCTION(GetGameObjectByGuid), asCALL_CDECL);
 
         // ---- Custom Hook Points ----
         // SendPlayerChoice hook: bool OnSendPlayerChoice(Player@, int32)
-        r = _scriptEngine->RegisterGlobalFunction("void RegisterSendPlayerChoiceHook(int, funcdef@)", asFUNCTION(RegisterCustomHook_SendPlayerChoice), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("void RegisterSendPlayerChoiceHook(int, ScriptCallback@)", asFUNCTION(RegisterCustomHook_SendPlayerChoice), asCALL_CDECL);
         // GetLockedDungeons hook: bool OnGetLockedDungeons(Player@)
-        r = _scriptEngine->RegisterGlobalFunction("void RegisterGetLockedDungeonsHook(int, funcdef@)", asFUNCTION(RegisterCustomHook_SendPlayerChoice), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("void RegisterGetLockedDungeonsHook(int, ScriptCallback@)", asFUNCTION(RegisterCustomHook_SendPlayerChoice), asCALL_CDECL);
 
         TC_LOG_INFO("angelscript", "World API registered (phase, summon, ObjectMgr, update fields, hook points)");
     }

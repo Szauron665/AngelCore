@@ -128,7 +128,7 @@ namespace AngelScript
     {
         // Register ResultSet type (shared_ptr managed, no AS ref counting)
         int r = _scriptEngine->RegisterObjectType("QueryResult", 0, asOBJ_REF | asOBJ_NOCOUNT);
-        if (r >= 0)
+        if (r >= 0 || r == asALREADY_REGISTERED)
         {
             r = _scriptEngine->RegisterObjectMethod("QueryResult", "uint32 GetRowCount() const", asFUNCTION(ResultSet_GetRowCount), asCALL_CDECL_OBJFIRST);
             r = _scriptEngine->RegisterObjectMethod("QueryResult", "uint32 GetFieldCount() const", asFUNCTION(ResultSet_GetFieldCount), asCALL_CDECL_OBJFIRST);

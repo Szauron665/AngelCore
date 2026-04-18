@@ -90,7 +90,7 @@ namespace AngelScript
     void RegisterUnitAPI(asIScriptEngine* _scriptEngine)
     {
         int r = _scriptEngine->RegisterObjectType("Unit", 0, asOBJ_REF | asOBJ_NOCOUNT);
-        if (r < 0)
+        if (r < 0 && r != asALREADY_REGISTERED)
         {
             TC_LOG_ERROR("angelscript", "Failed to register Unit type: {}", r);
             return;

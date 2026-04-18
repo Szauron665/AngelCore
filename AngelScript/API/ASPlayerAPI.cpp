@@ -111,7 +111,7 @@ namespace AngelScript
     static bool Player_HasQuest(Player* p, uint32 questId) { return p ? p->IsActiveQuest(questId) : false; }
     static uint32 Player_GetSkillStep(Player* p, uint32 skillId) { return p ? p->GetSkillStep(skillId) : 0; }
     static uint16 Player_GetSkillValue(Player* p, uint32 skillId) { return p ? p->GetSkillValue(skillId) : 0; }
-    static void Player_SendAreaTriggerMessage(Player* p, const std::string& msg) { if (p && p->GetSession()) p->GetSession()->SendNotification(msg.c_str()); }
+    static void Player_SendAreaTriggerMessage(Player* p, const std::string& msg) { if (p && p->GetSession()) p->GetSession()->SendNotification("%s", msg.c_str()); }
     static void Player_UpdateZone(Player* p, uint32 newZone, uint32 newArea) { if (p) p->UpdateZone(newZone, newArea); }
 
     // Cast methods — critical for type dispatch
@@ -121,7 +121,7 @@ namespace AngelScript
     void RegisterPlayerAPI(asIScriptEngine* _scriptEngine)
     {
         int r = _scriptEngine->RegisterObjectType("Player", 0, asOBJ_REF | asOBJ_NOCOUNT);
-        if (r < 0)
+        if (r < 0 && r != asALREADY_REGISTERED)
         {
             TC_LOG_ERROR("angelscript", "Failed to register Player type: {}", r);
             return;

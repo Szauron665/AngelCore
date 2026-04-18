@@ -169,9 +169,9 @@ namespace AngelScript
         int r;
 
         // ObjectData functions
-        r = _scriptEngine->RegisterGlobalFunction("void Object_SetEntryID(Object@, int32)", asFUNCTION(Object_SetEntryID), asCALL_CDECL);
-        r = _scriptEngine->RegisterGlobalFunction("void Object_SetDynamicFlags(Object@, uint32)", asFUNCTION(Object_SetDynamicFlags), asCALL_CDECL);
-        r = _scriptEngine->RegisterGlobalFunction("void Object_SetScale(Object@, float)", asFUNCTION(Object_SetScale), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("void Object_SetEntryID(Unit@, int32)", asFUNCTION(Object_SetEntryID), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("void Object_SetDynamicFlags(Unit@, uint32)", asFUNCTION(Object_SetDynamicFlags), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("void Object_SetScale(Unit@, float)", asFUNCTION(Object_SetScale), asCALL_CDECL);
 
         // UnitData functions
         r = _scriptEngine->RegisterGlobalFunction("void Unit_SetDisplayID(Unit@, uint32)", asFUNCTION(Unit_SetDisplayID), asCALL_CDECL);

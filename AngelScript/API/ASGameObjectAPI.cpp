@@ -72,7 +72,7 @@ namespace AngelScript
     void RegisterGameObjectAPI(asIScriptEngine* _scriptEngine)
     {
         int r = _scriptEngine->RegisterObjectType("GameObject", 0, asOBJ_REF | asOBJ_NOCOUNT);
-        if (r < 0)
+        if (r < 0 && r != asALREADY_REGISTERED)
         {
             TC_LOG_ERROR("angelscript", "Failed to register GameObject type: {}", r);
             return;

@@ -700,6 +700,9 @@ namespace AngelScript
         r = engine->RegisterObjectMethod("DB2Schema", "void Finalize()", 
             asFUNCTION(DB2_SchemaFinalize), asCALL_CDECL_OBJFIRST);
 
+        // ---- DB2Record class (forward-declared before DB2Storage so GetRecord can reference it) ----
+        r = engine->RegisterObjectType("DB2Record", 0, asOBJ_REF | asOBJ_NOCOUNT);
+
         // ---- DB2Storage class ----
         r = engine->RegisterObjectType("DB2Storage", 0, asOBJ_REF | asOBJ_NOCOUNT);
 
@@ -723,10 +726,7 @@ namespace AngelScript
         r = engine->RegisterObjectMethod("DB2Storage", "uint32 GetNumRows()", 
             asFUNCTION(DB2_StorageGetNumRows), asCALL_CDECL_OBJFIRST);
 
-        // ---- DB2Record class ----
-        r = engine->RegisterObjectType("DB2Record", 0, asOBJ_REF | asOBJ_NOCOUNT);
-
-        // Record field access
+        // ---- DB2Record methods (type already registered above) ----
         r = engine->RegisterObjectMethod("DB2Record", "uint32 GetUInt32(const string& in)", 
             asFUNCTION(DB2_RecordGetUInt32), asCALL_CDECL_OBJFIRST);
         r = engine->RegisterObjectMethod("DB2Record", "int32 GetInt32(const string& in)", 

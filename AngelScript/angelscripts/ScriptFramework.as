@@ -215,15 +215,5 @@ void GiveXP(Player@ player, uint32 amount)
     Print("GiveXP: " + amount + " to " + player.GetName());
 }
 
-// Send floating text (simplified — uses notification as fallback)
-void SendFloatingText(Player@ player, const string& in text, uint32 color = 0)
-{
-    SendSystemMessage(player, text);
-}
-
-// Play sound to player
-void PlaySoundToPlayer(Player@ player, uint32 soundId)
-{
-    if (player !is null)
-        PlaySoundToPlayer(player, soundId);
-}
+// SendFloatingText(Player@, const string& in, uint32) and PlaySoundToPlayer(Player@, uint32)
+// are provided by the C++ Global API — do not redefine them here.

@@ -17,9 +17,7 @@ typedef uint32 FactionId;
 typedef uint32 AccountId;
 typedef uint64 GUID;
 
-// Math constants
-const float PI = 3.14159265358979323846;
-const float HALF_PI = 1.57079632679489661923;
+// Math constants (PI and HALF_PI are registered by the C++ Math API)
 const float TWO_PI = 6.28318530717958647692;
 const float DEG_TO_RAD = 0.01745329251994329577;
 const float RAD_TO_DEG = 57.29577951308232087685;
@@ -30,11 +28,8 @@ string FormatMoney(uint64 copper)
     uint64 gold = copper / 10000;
     uint64 silver = (copper % 10000) / 100;
     uint64 copperRemainder = copper % 100;
-    return formatUInt(gold) + "g " + formatUInt(silver) + "s " + formatUInt(copperRemainder) + "c";
+    return gold + "g " + silver + "s " + copperRemainder + "c";
 }
-
-// Utility: format uint to string (AngelScript built-in)
-string formatUInt(uint64 v) { return "" + v; }
 
 // Utility: check if unit is a valid target
 bool IsValidTarget(Unit@ unit)
