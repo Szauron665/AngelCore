@@ -21,6 +21,10 @@
 #include "ChannelMgr.h"
 #include "Chat.h"
 #include "ChatPackets.h"
+
+#ifdef ANGELSCRIPT_INTEGRATION
+#include "AngelScriptMgr.h"
+#endif
 #include "Common.h"
 #include "CreatureAI.h"
 #include "DB2Stores.h"
