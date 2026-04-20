@@ -169,6 +169,7 @@ void AngelScriptMgr::RegisterTrinityCoreAPI()
     _scriptEngine->RegisterFuncdef("void UnitCallback(Unit@)");
     _scriptEngine->RegisterFuncdef("void GameObjectCallback(GameObject@)");
     _scriptEngine->RegisterFuncdef("void PlayerPlayerCallback(Player@, Player@)");
+    _scriptEngine->RegisterFuncdef("void StringCallback(string &in)");
 
     RegisterPlayerAPI(); RegisterCreatureAPI(); RegisterGameObjectAPI(); RegisterUnitAPI();
     RegisterSpellAPI(); RegisterPacketAPI(); RegisterDatabaseAPI(); RegisterGossipAPI();
@@ -179,6 +180,8 @@ void AngelScriptMgr::RegisterTrinityCoreAPI()
     // No-arg callbacks (ScriptCallback)
     _scriptEngine->RegisterGlobalFunction("void RegisterWorldScript(int, ScriptCallback@)",        asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterWorldScript(static_cast<WorldHookType>(t), f); }), asCALL_CDECL);
     _scriptEngine->RegisterGlobalFunction("void RegisterBattlegroundScript(int, ScriptCallback@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterBattlegroundScript(static_cast<BattlegroundHookType>(t), f); }), asCALL_CDECL);
+    // Console command hook (StringCallback - receives the command string)
+    _scriptEngine->RegisterGlobalFunction("void RegisterConsoleCommandHook(StringCallback@)", asFUNCTION(+[](asIScriptFunction* f){ sAngelScriptMgr->RegisterWorldScript(WorldHookType::ON_CONSOLE_COMMAND, f); }), asCALL_CDECL);
     _scriptEngine->RegisterGlobalFunction("void RegisterPacketScript(int, ScriptCallback@)",       asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterPacketScript(static_cast<PacketHookType>(t), f); }), asCALL_CDECL);
 
     // Player callbacks
@@ -491,6 +494,7 @@ bool AngelScriptMgr::ExecuteScriptFunction(asIScriptFunction* func)
 
 void AngelScriptMgr::TriggerWorldHook(WorldHookType t) { EXEC_HOOKS(ASWorldHooks::instance()->GetHooks(t)); }
 void AngelScriptMgr::TriggerWorldUpdate(uint32 d) { for(auto& f:ASWorldHooks::instance()->GetHooks(WorldHookType::ON_UPDATE)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgDWord(0,d);_context->Execute();} }
+void AngelScriptMgr::TriggerConsoleCommand(std::string& command) { for(auto& f:ASWorldHooks::instance()->GetHooks(WorldHookType::ON_CONSOLE_COMMAND)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgObject(0,&command);_context->Execute();} }
 
 void AngelScriptMgr::TriggerPlayerHook(PlayerHookType t, Player* p) { if(!p)return; EXEC_HOOKS(ASPlayerHooks::instance()->GetHooks(t), _context->SetArgObject(0,p)); }
 void AngelScriptMgr::TriggerPlayerHook(PlayerHookType t, Player* p, Player* o) { if(!p)return; EXEC_HOOKS(ASPlayerHooks::instance()->GetHooks(t), _context->SetArgObject(0,p); if(o)_context->SetArgObject(1,o)); }

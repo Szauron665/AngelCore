@@ -126,6 +126,7 @@ namespace AngelScript
         // Hook triggering — called from Dispatch/ layer
         void TriggerWorldHook(WorldHookType type);
         void TriggerWorldUpdate(uint32 diff);
+        void TriggerConsoleCommand(std::string& command);
         void TriggerPlayerHook(PlayerHookType type, Player* player);
         void TriggerPlayerHook(PlayerHookType type, Player* player, Player* other); // ON_KILL_PLAYER, ON_DUEL_*
         void TriggerPlayerChat(Player* player, uint32 type, uint32 lang, std::string& msg);

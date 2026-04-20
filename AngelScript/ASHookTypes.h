@@ -12,6 +12,7 @@ namespace AngelScript
         ON_SHUTDOWN,        // Server shutdown
         ON_UPDATE,          // World update tick
         ON_CONFIG_LOAD,     // Configuration loaded
+        ON_CONSOLE_COMMAND, // Admin sends a command via console
         COUNT
     };
 

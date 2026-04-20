@@ -6,10 +6,11 @@
 
 // ---- Hook type constants ----
 // World
-const int WORLD_ON_STARTUP     = 0;
-const int WORLD_ON_SHUTDOWN    = 1;
-const int WORLD_ON_UPDATE      = 2;
-const int WORLD_ON_CONFIG_LOAD = 3;
+const int WORLD_ON_STARTUP       = 0;
+const int WORLD_ON_SHUTDOWN      = 1;
+const int WORLD_ON_UPDATE        = 2;
+const int WORLD_ON_CONFIG_LOAD   = 3;
+const int WORLD_ON_CONSOLE_COMMAND = 4;
 
 // Player
 const int PLAYER_ON_LOGIN            = 0;
