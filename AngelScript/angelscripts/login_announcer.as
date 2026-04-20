@@ -4,40 +4,7 @@
  */
 
 #include "ScriptFramework.as"
-
-// Gender constants (note: source uses -1 for UNKNOWN, 0=MALE, 1=FEMALE, 2=NONE)
-const int GENDER_MALE    = 0;
-const int GENDER_FEMALE  = 1;
-const int GENDER_UNKNOWN = 2;
-const int GENDER_NONE    = 3;
-
-// Additional race constants for Allied Races and newer
-const int RACE_GOBLIN               = 9;
-const int RACE_WORGEN               = 22;
-const int RACE_PANDAREN_NEUTRAL     = 24;
-const int RACE_PANDAREN_ALLIANCE    = 25;
-const int RACE_PANDAREN_HORDE       = 26;
-const int RACE_NIGHTBORNE           = 27;
-const int RACE_HIGHMOUNTAIN_TAUREN  = 28;
-const int RACE_VOID_ELF             = 29;
-const int RACE_LIGHTFORGED_DRAENEI  = 30;
-const int RACE_ZANDALARI_TROLL      = 31;
-const int RACE_KUL_TIRAN            = 32;
-const int RACE_DARK_IRON_DWARF      = 34;
-const int RACE_VULPERA              = 35;
-const int RACE_MAGHAR_ORC           = 36;
-const int RACE_MECHAGNOME           = 37;
-const int RACE_DRACTHYR_ALLIANCE    = 52;
-const int RACE_DRACTHYR_HORDE       = 70;
-const int RACE_EARTHEN_DWARF_HORDE  = 84;
-const int RACE_EARTHEN_DWARF_ALLIANCE = 85;
-const int RACE_HARANIR_ALLIANCE     = 86;
-const int RACE_HARANIR_HORDE        = 91;
-
-// Additional class constants
-const int CLASS_EVOKER      = 13;
-const int CLASS_ADVENTURER  = 14;
-const int CLASS_TRAVELER    = 15;
+#include "Common.as"
 
 string GetClassIcon(uint8 classId)
 {
@@ -68,7 +35,6 @@ string GetGenderString(uint8 gender)
     {
         case GENDER_MALE:    return "Male";
         case GENDER_FEMALE:  return "Female";
-        case GENDER_UNKNOWN: return "Unknown";
         case GENDER_NONE:    return "None";
     }
     return "Unknown";
@@ -92,7 +58,7 @@ string GetRaceIcon(uint8 race, uint8 gender)
         case RACE_NIGHTELF:
             return isMale ? "|TInterface\\icons\\achievement_character_nightelf_male:15|t" 
                           : "|TInterface\\icons\\achievement_character_nightelf_female:15|t";
-        case 5: // RACE_UNDEAD_PLAYER
+        case RACE_UNDEAD_PLAYER:
             return isMale ? "|TInterface\\icons\\achievement_character_undead_male:15|t" 
                           : "|TInterface\\icons\\achievement_character_undead_female:15|t";
         case RACE_TAUREN:
