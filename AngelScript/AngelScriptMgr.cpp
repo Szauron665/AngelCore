@@ -24,6 +24,7 @@
 #pragma pop_macro("OUT")
 #pragma pop_macro("IN")
 #include "AngelScriptMgr.h"
+#include "ASPacketData.h"
 #include "Log.h"
 #include "World.h"
 #include "Player.h"
@@ -207,6 +208,14 @@ void AngelScriptMgr::RegisterTrinityCoreAPI()
 
     // Player+Player callbacks
     _scriptEngine->RegisterGlobalFunction("void RegisterPlayerScript(int, PlayerPlayerCallback@)", asFUNCTION(+[](int t, asIScriptFunction* f){ sAngelScriptMgr->RegisterPlayerScript(static_cast<PlayerHookType>(t), f); }), asCALL_CDECL);
+    // CharEnum hook — bool handler(WorldSession@, PacketData@)
+    // The PacketData contains the already-serialised SMSG_ENUM_CHARACTERS_RESULT bytes.
+    // Script should append warband group data then call session.SendPacket(packet) and return true.
+    _scriptEngine->RegisterFuncdef("bool CharEnumCallback(WorldSession@, PacketData@)");
+    _scriptEngine->RegisterGlobalFunction("void RegisterCharEnumHook(CharEnumCallback@)",
+        asFUNCTION(+[](asIScriptFunction* f){ sAngelScriptMgr->RegisterCustomHook(CustomHookType::ON_CHAR_ENUM, f); }),
+        asCALL_CDECL);
+
     RegisterSharedDataAPI(); RegisterScriptClassesAPI(); RegisterEnhancedPacketAPI();
     RegisterScriptAttributesAPI(); RegisterInstanceAPI(); RegisterBattlegroundAPI();
     RegisterArenaAPI(); RegisterMapAPI(); RegisterGroupGuildAPI(); RegisterItemAuctionAPI();
@@ -460,6 +469,23 @@ bool AngelScriptMgr::TriggerCustomHook_SendPlayerChoice(Player* player, int32 ch
     return false;
 }
 
+bool AngelScriptMgr::TriggerCustomHook_CharEnum(WorldSession* session, PacketData& enumPacket)
+{
+    auto& hooks = _customHooks[static_cast<size_t>(CustomHookType::ON_CHAR_ENUM)];
+    for (auto& func : hooks)
+    {
+        if (!_context) break;
+        int r = _context->Prepare(func);
+        if (r < 0) continue;
+        _context->SetArgObject(0, session);
+        _context->SetArgObject(1, &enumPacket);
+        r = _context->Execute();
+        if (r == asEXECUTION_FINISHED && _context->GetReturnByte())
+            return true;
+    }
+    return false;
+}
+
 bool AngelScriptMgr::TriggerCustomHook_GetLockedDungeons(Player* player, std::vector<uint32>& /*lockedDungeons*/)
 {
     auto& hooks = _customHooks[static_cast<size_t>(CustomHookType::ON_GET_LOCKED_DUNGEONS)];
@@ -602,7 +628,20 @@ bool AngelScriptMgr::TriggerPacketReceive(WorldSession* s, WorldPacket& p, uint3
 {
     if(!s) return false;
     auto* oh=ASPacketHooks::instance()->GetOpcodeHandler(static_cast<uint16>(op));
-    if(oh){if(!oh||!_context);else if(_context->Prepare(oh)<0);else{_context->SetArgObject(0,s);_context->SetArgObject(1,&p);_context->SetArgDWord(2,op);if(_context->Execute()==asEXECUTION_FINISHED&&_context->GetReturnByte()!=0)return ASPacketHooks::instance()->ShouldBlockOriginal(static_cast<uint16>(op));}}
+    if(oh && _context)
+    {
+        PacketData pd;
+        pd.opcode = op;
+        if(p.size() > 0) { pd.data.assign(p.data(), p.data() + p.size()); }
+        pd.size = static_cast<uint32>(pd.data.size());
+        if(_context->Prepare(oh) >= 0)
+        {
+            _context->SetArgObject(0, s);
+            _context->SetArgObject(1, &pd);
+            if(_context->Execute() == asEXECUTION_FINISHED && _context->GetReturnByte() != 0)
+                return ASPacketHooks::instance()->ShouldBlockOriginal(static_cast<uint16>(op));
+        }
+    }
     for(auto& f:ASPacketHooks::instance()->GetHooks(PacketHookType::ON_PACKET_RECEIVE)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgObject(0,s);_context->SetArgObject(1,&p);_context->SetArgDWord(2,op);if(_context->Execute()==asEXECUTION_FINISHED&&_context->GetReturnByte()!=0)return true;}
     return false;
 }

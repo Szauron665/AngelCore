@@ -16,6 +16,9 @@
  */
 
 #include "WorldSession.h"
+#ifdef ANGELSCRIPT_INTEGRATION
+#include "AngelScriptMgr.h"
+#endif
 #include "AccountMgr.h"
 #include "ArenaTeam.h"
 #include "ArenaTeamMgr.h"
@@ -491,7 +494,22 @@ void WorldSession::HandleCharEnum(CharacterDatabaseQueryHolder const& holder)
         charEnum.RaceUnlockData.push_back(raceUnlock);
     }
 
+#ifdef ANGELSCRIPT_INTEGRATION
+    if (sAngelScriptMgr->IsEnabled())
+    {
+        WorldPacket const* builtPacket = charEnum.Write();
+        PacketData pd;
+        pd.opcode = builtPacket->GetOpcode();
+        pd.data.assign(builtPacket->data(), builtPacket->data() + builtPacket->size());
+        pd.size = static_cast<uint32>(pd.data.size());
+        if (!sAngelScriptMgr->TriggerCustomHook_CharEnum(this, pd))
+            SendPacket(builtPacket);
+    }
+    else
+        SendPacket(charEnum.Write());
+#else
     SendPacket(charEnum.Write());
+#endif
 
     if (!charEnum.IsDeletedCharacters)
         _collectionMgr->SendWarbandSceneCollectionData();

@@ -182,6 +182,7 @@ namespace AngelScript
         // Custom hook points — returns true if hook handled/overrode the event
         bool TriggerCustomHook_SendPlayerChoice(Player* player, int32 choiceId);
         bool TriggerCustomHook_GetLockedDungeons(Player* player, std::vector<uint32>& lockedDungeons);
+        bool TriggerCustomHook_CharEnum(WorldSession* session, PacketData& enumPacket);
 
         // Per-entry AI dispatch — called from Dispatch/ CreatureScript/GameObjectScript
         CreatureAI* GetCreatureAI(Creature* creature);

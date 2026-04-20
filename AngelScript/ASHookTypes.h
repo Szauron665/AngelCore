@@ -262,6 +262,7 @@ namespace AngelScript
         ON_TALENT_CALCULATE,       // Before talent points are calculated
         ON_ITEM_LOOT_MODIFY,       // Modify item loot before it's given
         ON_AREATRIGGER,            // Area trigger entered/exited
+        ON_CHAR_ENUM,              // After char enum packet is built; script can append warband groups and send
         COUNT
     };
 

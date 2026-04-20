@@ -33,9 +33,34 @@
 #include "Opcodes.h"
 #include "Log.h"
 #include "../ASPacketData.h"
+#include "../Hooks/ASPacketHooks.h"
 
 namespace AngelScript
 {
+    // ---- WorldSession wrappers ----
+    static uint32  Session_GetAccountId(WorldSession* s)   { return s ? s->GetAccountId() : 0; }
+    static std::string Session_GetAccountName(WorldSession* s) { return s ? s->GetAccountName() : ""; }
+    static Player* Session_GetPlayer(WorldSession* s)      { return s ? s->GetPlayer() : nullptr; }
+    static void    Session_SendPacket(WorldSession* s, PacketData* pd)
+    {
+        if (!s || !pd) return;
+        WorldPacket pkt(static_cast<OpcodeServer>(pd->opcode));
+        if (!pd->data.empty())
+            pkt.append(pd->data.data(), pd->data.size());
+        s->SendPacket(&pkt);
+    }
+
+    // ---- OpcodeHandler registration (script -> C++ bridge) ----
+    static void RegisterOpcodeHandler(uint32 opcode, asIScriptFunction* func, bool blockOriginal)
+    {
+        if (!func) return;
+        ASPacketHooks::instance()->RegisterOpcodeHandler(static_cast<uint16>(opcode), func, blockOriginal);
+    }
+    static void UnregisterOpcodeHandler(uint32 opcode)
+    {
+        ASPacketHooks::instance()->UnregisterOpcodeHandler(static_cast<uint16>(opcode));
+    }
+
     // ---- PacketData wrappers (from ASPacketData.h) ----
 
     static uint8 PD_ReadUInt8(PacketData* pd) { return pd ? pd->ReadUInt8() : 0; }
@@ -50,6 +75,36 @@ namespace AngelScript
     static double PD_ReadDouble(PacketData* pd) { return pd ? pd->ReadDouble() : 0.0; }
     static std::string PD_ReadString(PacketData* pd) { return pd ? pd->ReadString() : ""; }
     static std::string PD_ReadCString(PacketData* pd) { return pd ? pd->ReadCString() : ""; }
+    static void PD_WriteUInt32At(PacketData* pd, uint32 offset, uint32 value)
+    {
+        if (!pd || offset + 4 > pd->data.size()) return;
+        pd->data[offset]     = static_cast<uint8>(value);
+        pd->data[offset + 1] = static_cast<uint8>(value >> 8);
+        pd->data[offset + 2] = static_cast<uint8>(value >> 16);
+        pd->data[offset + 3] = static_cast<uint8>(value >> 24);
+    }
+    static uint32 PD_ReadUInt32At(PacketData* pd, uint32 offset)
+    {
+        if (!pd || offset + 4 > pd->data.size()) return 0;
+        return static_cast<uint32>(pd->data[offset])
+             | static_cast<uint32>(pd->data[offset + 1]) << 8
+             | static_cast<uint32>(pd->data[offset + 2]) << 16
+             | static_cast<uint32>(pd->data[offset + 3]) << 24;
+    }
+    static uint32 PD_GetDataSize(PacketData* pd) { return pd ? static_cast<uint32>(pd->data.size()) : 0; }
+
+    static std::string PD_ReadBytes(PacketData* pd, uint32 len)
+    {
+        if (!pd || len == 0) return "";
+        std::string out;
+        out.reserve(len);
+        for (uint32 i = 0; i < len; ++i)
+        {
+            if (pd->_readPos >= pd->data.size()) break;
+            out.push_back(static_cast<char>(pd->data[pd->_readPos++]));
+        }
+        return out;
+    }
 
     static void PD_WriteUInt8(PacketData* pd, uint8 v) { if (pd) pd->WriteUInt8(v); }
     static void PD_WriteUInt16(PacketData* pd, uint16 v) { if (pd) pd->WriteUInt16(v); }
@@ -104,8 +159,25 @@ namespace AngelScript
 
     void RegisterPacketAPI(asIScriptEngine* _scriptEngine)
     {
+        // Register WorldSession type
+        int r = _scriptEngine->RegisterObjectType("WorldSession", 0, asOBJ_REF | asOBJ_NOCOUNT);
+        if (r >= 0 || r == asALREADY_REGISTERED)
+        {
+            _scriptEngine->RegisterObjectMethod("WorldSession", "uint32 GetAccountId() const",   asFUNCTION(Session_GetAccountId),   asCALL_CDECL_OBJFIRST);
+            _scriptEngine->RegisterObjectMethod("WorldSession", "string GetAccountName() const",  asFUNCTION(Session_GetAccountName), asCALL_CDECL_OBJFIRST);
+            _scriptEngine->RegisterObjectMethod("WorldSession", "Player@ GetPlayer() const",      asFUNCTION(Session_GetPlayer),      asCALL_CDECL_OBJFIRST);
+            _scriptEngine->RegisterObjectMethod("WorldSession", "void SendPacket(PacketData@)",   asFUNCTION(Session_SendPacket),     asCALL_CDECL_OBJFIRST);
+        }
+
+        // OpcodeCallback funcdef: bool handler(WorldSession@, PacketData@)
+        _scriptEngine->RegisterFuncdef("bool OpcodeCallback(WorldSession@, PacketData@)");
+
+        // Register opcode handler binding
+        _scriptEngine->RegisterGlobalFunction("void RegisterOpcodeHandler(uint32, OpcodeCallback@, bool blockOriginal = false)", asFUNCTION(RegisterOpcodeHandler), asCALL_CDECL);
+        _scriptEngine->RegisterGlobalFunction("void UnregisterOpcodeHandler(uint32)",                                           asFUNCTION(UnregisterOpcodeHandler), asCALL_CDECL);
+
         // Register PacketData type
-        int r = _scriptEngine->RegisterObjectType("PacketData", 0, asOBJ_REF | asOBJ_NOCOUNT);
+        r = _scriptEngine->RegisterObjectType("PacketData", 0, asOBJ_REF | asOBJ_NOCOUNT);
         if (r < 0 && r != asALREADY_REGISTERED)
         {
             TC_LOG_ERROR("angelscript", "Failed to register PacketData type: {}", r);
@@ -125,6 +197,10 @@ namespace AngelScript
         r = _scriptEngine->RegisterObjectMethod("PacketData", "double ReadDouble()", asFUNCTION(PD_ReadDouble), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "string ReadString()", asFUNCTION(PD_ReadString), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "string ReadCString()", asFUNCTION(PD_ReadCString), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "string ReadBytes(uint32)",            asFUNCTION(PD_ReadBytes),       asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteUInt32At(uint32, uint32)",   asFUNCTION(PD_WriteUInt32At),   asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "uint32 ReadUInt32At(uint32) const",    asFUNCTION(PD_ReadUInt32At),    asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "uint32 GetDataSize() const",           asFUNCTION(PD_GetDataSize),     asCALL_CDECL_OBJFIRST);
 
         // Write methods
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteUInt8(uint8)", asFUNCTION(PD_WriteUInt8), asCALL_CDECL_OBJFIRST);
