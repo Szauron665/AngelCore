@@ -56,8 +56,8 @@ string GetClassIcon(uint8 classId)
         case CLASS_DEMON_HUNTER:   return "|TInterface\\icons\\classicon_demonhunter:15|t";
         case CLASS_MONK:           return "|TInterface\\icons\\classicon_monk:15|t";
         case CLASS_EVOKER:         return "|TInterface\\icons\\classicon_evoker:15|t";
-        case CLASS_ADVENTURER:     return "|TInterface\\icons\\classicon_adventurer:15|t";
-        case CLASS_TRAVELER:       return "|TInterface\\icons\\classicon_traveler:15|t";
+        case CLASS_ADVENTURER:     return "|TInterface\\icons\\classicon_evoker:15|t";
+        case CLASS_TRAVELER:       return "|TInterface\\icons\\classicon_evoker:15|t";
     }
     return "";
 }
@@ -145,13 +145,13 @@ string GetRaceIcon(uint8 race, uint8 gender)
             return "|TInterface\\icons\\achievement_alliedrace_mechagnome:15|t";
         case RACE_DRACTHYR_ALLIANCE:
         case RACE_DRACTHYR_HORDE:
-            return "|TInterface\\icons\\classicon_evoker:15|t";
+            return "|TInterface\\icons\\ui_dracthyr:15|t";
         case RACE_EARTHEN_DWARF_ALLIANCE:
         case RACE_EARTHEN_DWARF_HORDE:
-            return "|TInterface\\icons\\inv_earthenrace_icon:15|t";
+            return "|TInterface\\icons\\inv_achievement_alliedrace_earthen:15|t";
         case RACE_HARANIR_ALLIANCE:
         case RACE_HARANIR_HORDE:
-            return "|TInterface\\icons\\inv_haranir_icon:15|t";
+            return "|TInterface\\icons\\inv12_achievements_alliedrace_haranir_sigil:15|t";
     }
     return "";
 }
