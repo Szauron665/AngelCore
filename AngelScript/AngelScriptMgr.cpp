@@ -526,7 +526,7 @@ void AngelScriptMgr::TriggerPlayerChat(Player* p, uint32 t, uint32 l, std::strin
         if (session && !session->HasPermission(rbac::RBAC_PERM_COMMAND_RELOAD_ANGELSCRIPT))
         {
             ChatHandler handler(session);
-            handler.SendSysMessage(LANG_CMD_NOT_ALLOWED);
+            handler.SendSysMessage("Command not allowed for you.");
             m.clear(); // Clear message to prevent further processing
             return;
         }
