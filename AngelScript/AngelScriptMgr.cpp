@@ -41,6 +41,9 @@
 #include "WorldSession.h"
 #include "ByteBuffer.h"
 #include "ScriptMgr.h"
+#include "Chat.h"
+#include "AccountMgr.h"
+#include "Language.h"
 #include "API/ASPlayerAPI.h"
 #include "API/ASCreatureAPI.h"
 #include "API/ASGameObjectAPI.h"
@@ -494,11 +497,47 @@ bool AngelScriptMgr::ExecuteScriptFunction(asIScriptFunction* func)
 
 void AngelScriptMgr::TriggerWorldHook(WorldHookType t) { EXEC_HOOKS(ASWorldHooks::instance()->GetHooks(t)); }
 void AngelScriptMgr::TriggerWorldUpdate(uint32 d) { for(auto& f:ASWorldHooks::instance()->GetHooks(WorldHookType::ON_UPDATE)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgDWord(0,d);_context->Execute();} }
-void AngelScriptMgr::TriggerConsoleCommand(std::string& command) { for(auto& f:ASWorldHooks::instance()->GetHooks(WorldHookType::ON_CONSOLE_COMMAND)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgObject(0,&command);_context->Execute();} }
+void AngelScriptMgr::TriggerConsoleCommand(std::string& command) 
+{
+    // Force check for AngelScript reload commands
+    if (command == "reload angelscript" || command == "rel as")
+    {
+        TC_LOG_INFO("misc", "Reloading AngelScript scripts (force check from console)...");
+        ReloadScripts();
+        printf("AngelScript scripts reloaded.\n");
+        return;
+    }
+    
+    for(auto& f:ASWorldHooks::instance()->GetHooks(WorldHookType::ON_CONSOLE_COMMAND)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgObject(0,&command);_context->Execute();} 
+}
 
 void AngelScriptMgr::TriggerPlayerHook(PlayerHookType t, Player* p) { if(!p)return; EXEC_HOOKS(ASPlayerHooks::instance()->GetHooks(t), _context->SetArgObject(0,p)); }
 void AngelScriptMgr::TriggerPlayerHook(PlayerHookType t, Player* p, Player* o) { if(!p)return; EXEC_HOOKS(ASPlayerHooks::instance()->GetHooks(t), _context->SetArgObject(0,p); if(o)_context->SetArgObject(1,o)); }
-void AngelScriptMgr::TriggerPlayerChat(Player* p, uint32 t, uint32 l, std::string& m) { if(!p)return; for(auto& f:ASPlayerHooks::instance()->GetHooks(PlayerHookType::ON_CHAT)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgObject(0,p);_context->SetArgDWord(1,t);_context->SetArgDWord(2,l);_context->SetArgObject(3,&m);_context->Execute();} }
+void AngelScriptMgr::TriggerPlayerChat(Player* p, uint32 t, uint32 l, std::string& m) 
+{ 
+    if(!p)return;
+    
+    // Force check for AngelScript reload commands
+    if (m == "reload angelscript" || m == "rel as")
+    {
+        WorldSession* session = p->GetSession();
+        if (session && !session->HasPermission(rbac::RBAC_PERM_COMMAND_RELOAD_ANGELSCRIPT))
+        {
+            ChatHandler handler(session);
+            handler.SendSysMessage(LANG_CMD_NOT_ALLOWED);
+            return;
+        }
+
+        TC_LOG_INFO("misc", "Reloading AngelScript scripts (force check from chat)...");
+        ReloadScripts();
+        
+        ChatHandler handler(session);
+        handler.SendSysMessage("AngelScript scripts reloaded.");
+        return;
+    }
+    
+    for(auto& f:ASPlayerHooks::instance()->GetHooks(PlayerHookType::ON_CHAT)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgObject(0,p);_context->SetArgDWord(1,t);_context->SetArgDWord(2,l);_context->SetArgObject(3,&m);_context->Execute();} 
+}
 void AngelScriptMgr::TriggerPlayerKill(Player* p, Unit* v) { if(!p||!v)return; EXEC_HOOKS(ASPlayerHooks::instance()->GetHooks(PlayerHookType::ON_KILL), _context->SetArgObject(0,p); _context->SetArgObject(1,v)); }
 void AngelScriptMgr::TriggerPlayerDeath(Player* p, Unit* k) { if(!p)return; EXEC_HOOKS(ASPlayerHooks::instance()->GetHooks(PlayerHookType::ON_DEATH), _context->SetArgObject(0,p); if(k)_context->SetArgObject(1,k)); }
 void AngelScriptMgr::TriggerPlayerLevelUp(Player* p, uint8 l) { if(!p)return; EXEC_HOOKS(ASPlayerHooks::instance()->GetHooks(PlayerHookType::ON_LEVEL_UP), _context->SetArgObject(0,p); _context->SetArgByte(1,l)); }
