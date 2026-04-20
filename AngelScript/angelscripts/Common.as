@@ -43,4 +43,18 @@ float GetDistance3D(float x1, float y1, float z1, float x2, float y2, float z2)
     return Dist3D(x1, y1, z1, x2, y2, z2);
 }
 
+// Escape single quotes in a string for safe SQL insertion.
+string EscapeString(const string& in s)
+{
+    string result = "";
+    for (uint i = 0; i < s.length(); i++)
+    {
+        if (s[i] == 39) // single quote (0x27)
+            result += "''";
+        else
+            result += s.substr(i, 1);
+    }
+    return result;
+}
+
 // Note: All race, class, and gender constants are now centralized in ScriptFramework.as
