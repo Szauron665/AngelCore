@@ -3030,8 +3030,7 @@ void World::ProcessCliCommands()
         CliHandler handler(callbackArg, zprint);
 #ifdef ANGELSCRIPT_INTEGRATION
         // Trigger AngelScript console command hook
-        std::string cmdStr(command->m_command);
-        sAngelScriptMgr->TriggerConsoleCommand(cmdStr);
+        sAngelScriptMgr->TriggerConsoleCommand(command->m_command);
 #endif
         handler.ParseCommands(command->m_command);
         if (command->m_commandFinished)

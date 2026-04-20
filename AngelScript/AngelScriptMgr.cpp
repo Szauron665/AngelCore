@@ -499,6 +499,8 @@ void AngelScriptMgr::TriggerWorldHook(WorldHookType t) { EXEC_HOOKS(ASWorldHooks
 void AngelScriptMgr::TriggerWorldUpdate(uint32 d) { for(auto& f:ASWorldHooks::instance()->GetHooks(WorldHookType::ON_UPDATE)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgDWord(0,d);_context->Execute();} }
 void AngelScriptMgr::TriggerConsoleCommand(std::string& command) 
 {
+    TC_LOG_INFO("misc", "AngelScript console hook triggered with command: '{}'", command);
+    
     // Force check for AngelScript reload commands
     if (command == "reload angelscript" || command == "rel as")
     {
@@ -519,9 +521,12 @@ void AngelScriptMgr::TriggerPlayerChat(Player* p, uint32 t, uint32 l, std::strin
 { 
     if(!p)return;
     
+    TC_LOG_INFO("misc", "AngelScript chat hook triggered with message: '{}' from player: {}", m, p ? p->GetName() : "null");
+    
     // Force check for AngelScript reload commands
     if (m == "reload angelscript" || m == "rel as")
     {
+        TC_LOG_INFO("misc", "AngelScript reload command detected in chat!");
         WorldSession* session = p->GetSession();
         if (session && !session->HasPermission(rbac::RBAC_PERM_COMMAND_RELOAD_ANGELSCRIPT))
         {
