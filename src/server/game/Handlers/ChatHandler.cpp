@@ -230,6 +230,14 @@ ChatMessageResult WorldSession::HandleChatMessage(ChatMsg type, Language lang, s
     if (msg.empty())
         return ChatMessageResult::MessageEmpty;
 
+#ifdef ANGELSCRIPT_INTEGRATION
+    // Trigger AngelScript chat hook before normal command processing
+    sAngelScriptMgr->TriggerPlayerChat(GetPlayer(), type, lang, msg);
+    // If the message was modified/cleared by AngelScript, check if it's empty
+    if (msg.empty())
+        return ChatMessageResult::HandledCommand;
+#endif
+
     if (ChatHandler(this).ParseCommands(msg.c_str()))
         return ChatMessageResult::HandledCommand;
 

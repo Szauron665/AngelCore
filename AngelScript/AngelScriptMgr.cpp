@@ -505,6 +505,8 @@ void AngelScriptMgr::TriggerConsoleCommand(std::string& command)
         TC_LOG_INFO("misc", "Reloading AngelScript scripts (force check from console)...");
         ReloadScripts();
         printf("AngelScript scripts reloaded.\n");
+        // Clear the command to prevent normal processing
+        command.clear();
         return;
     }
     
@@ -525,6 +527,7 @@ void AngelScriptMgr::TriggerPlayerChat(Player* p, uint32 t, uint32 l, std::strin
         {
             ChatHandler handler(session);
             handler.SendSysMessage(LANG_CMD_NOT_ALLOWED);
+            m.clear(); // Clear message to prevent further processing
             return;
         }
 
@@ -533,6 +536,7 @@ void AngelScriptMgr::TriggerPlayerChat(Player* p, uint32 t, uint32 l, std::strin
         
         ChatHandler handler(session);
         handler.SendSysMessage("AngelScript scripts reloaded.");
+        m.clear(); // Clear message to prevent further processing
         return;
     }
     
