@@ -58,7 +58,7 @@ string GetRaceIcon(uint8 race, uint8 gender)
         case RACE_NIGHTELF:
             return isMale ? "|TInterface\\icons\\achievement_character_nightelf_male:15|t" 
                           : "|TInterface\\icons\\achievement_character_nightelf_female:15|t";
-        case RACE_UNDEAD_PLAYER:
+        case RACE_UNDEAD:
             return isMale ? "|TInterface\\icons\\achievement_character_undead_male:15|t" 
                           : "|TInterface\\icons\\achievement_character_undead_female:15|t";
         case RACE_TAUREN:
