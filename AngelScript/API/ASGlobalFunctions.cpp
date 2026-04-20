@@ -85,6 +85,7 @@ namespace AngelScript
 
     // ---- World API wrappers ----
     static uint32 World_GetTime() { return static_cast<uint32>(GameTime::GetGameTime()); }
+    static uint32 World_GetGameTime() { return static_cast<uint32>(GameTime::GetGameTime()); }
     static uint32 World_GetMSTime() { return getMSTime(); }
     static uint32 World_GetConfigUInt32(uint32 configId) { return sWorld->getIntConfig(static_cast<WorldIntConfigs>(configId)); }
     static float World_GetConfigFloat(uint32 configId) { return sWorld->getFloatConfig(static_cast<WorldFloatConfigs>(configId)); }
@@ -136,27 +137,23 @@ namespace AngelScript
         r = _scriptEngine->RegisterGlobalFunction("void PlaySoundToPlayer(Player@, uint32)", asFUNCTION(Global_PlaySoundToPlayer), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("void SendWorldText(const string& in)", asFUNCTION(Global_SendWorldText), asCALL_CDECL);
 
-        // Player finders
-        r = _scriptEngine->RegisterGlobalFunction("Player@ FindPlayerByName(const string& in)", asFUNCTION(Global_FindPlayerByName), asCALL_CDECL);
-        r = _scriptEngine->RegisterGlobalFunction("Player@ FindPlayerByGUID(uint64)", asFUNCTION(Global_FindPlayerByGUID), asCALL_CDECL);
-
-        TC_LOG_INFO("angelscript", "Global functions registered");
-    }
-
-    void RegisterWorldGlobals(asIScriptEngine* _scriptEngine)
-    {
-        // Register World as a global property or namespace functions
-        int r;
+        // Time
         r = _scriptEngine->RegisterGlobalFunction("uint32 GetWorldTime()", asFUNCTION(World_GetTime), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("uint32 GetGameTime()", asFUNCTION(World_GetGameTime), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("uint32 GetMSTime()", asFUNCTION(World_GetMSTime), asCALL_CDECL);
+
+        // World config / player count
         r = _scriptEngine->RegisterGlobalFunction("uint32 GetWorldConfigUInt32(uint32)", asFUNCTION(World_GetConfigUInt32), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("float GetWorldConfigFloat(uint32)", asFUNCTION(World_GetConfigFloat), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("bool GetWorldConfigBool(uint32)", asFUNCTION(World_GetConfigBool), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("uint32 GetPlayerCount()", asFUNCTION(World_GetPlayerCount), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("uint32 GetMaxPlayerCount()", asFUNCTION(World_GetMaxPlayerCount), asCALL_CDECL);
 
-        TC_LOG_INFO("angelscript", "World globals registered");
-        TC_LOG_INFO("angelscript", "World API registered");
+        // Player finders
+        r = _scriptEngine->RegisterGlobalFunction("Player@ FindPlayerByName(const string& in)", asFUNCTION(Global_FindPlayerByName), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("Player@ FindPlayerByGUID(uint64)", asFUNCTION(Global_FindPlayerByGUID), asCALL_CDECL);
+
+        TC_LOG_INFO("angelscript", "Global functions registered");
     }
 
     void RegisterMathAPI(asIScriptEngine* _scriptEngine)
