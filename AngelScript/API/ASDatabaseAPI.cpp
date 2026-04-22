@@ -95,6 +95,13 @@ namespace AngelScript
         _activeQueryResults.erase(it, _activeQueryResults.end());
     }
 
+    static std::string DB_EscapeString(const std::string& str)
+    {
+        std::string escaped = str;
+        CharacterDatabase.EscapeString(escaped);
+        return escaped;
+    }
+
     static void DB_CharacterExecute(const std::string& sql)
     {
         TC_LOG_INFO("angelscript", "CharacterDatabase execute: {}", sql);
@@ -151,6 +158,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterGlobalFunction("void LoginExecute(const string& in)", asFUNCTION(DB_LoginExecute), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("void CharacterPreparedStatementExecute(uint32)", asFUNCTION(DB_CharacterPreparedStatementExecute), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("void ClearStaleQueryResults()", asFUNCTION(DB_ClearStaleResults), asCALL_CDECL);
+        r = _scriptEngine->RegisterGlobalFunction("string DBEscapeString(const string& in)", asFUNCTION(DB_EscapeString), asCALL_CDECL);
 
         TC_LOG_INFO("angelscript", "Database API registered");
     }
