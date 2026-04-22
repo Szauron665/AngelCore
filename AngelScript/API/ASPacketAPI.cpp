@@ -106,6 +106,46 @@ namespace AngelScript
         return out;
     }
 
+    static uint64 PD_ReadPackedUInt64(PacketData* pd)
+    {
+        if (!pd || pd->_readPos >= pd->data.size()) return 0;
+        uint8 mask = pd->data[pd->_readPos++];
+        uint64 result = 0;
+        for (int i = 0; i < 8; ++i)
+        {
+            if (mask & (1 << i))
+            {
+                if (pd->_readPos >= pd->data.size()) break;
+                result |= static_cast<uint64>(pd->data[pd->_readPos++]) << (i * 8);
+            }
+        }
+        return result;
+    }
+
+    static void PD_WritePackedUInt64(PacketData* pd, uint64 val)
+    {
+        // Reserve space for the mask byte, then write only non-zero bytes
+        size_t maskPos = pd->data.size();
+        pd->data.push_back(0); // placeholder for mask
+        uint8 mask = 0;
+        for (int i = 0; i < 8; ++i)
+        {
+            uint8 b = static_cast<uint8>(val >> (i * 8));
+            if (b)
+            {
+                mask |= static_cast<uint8>(1 << i);
+                pd->data.push_back(b);
+            }
+        }
+        pd->data[maskPos] = mask;
+    }
+    static void PD_WritePackedGuid(PacketData* pd, uint64 low, uint64 high)
+    {
+        if (!pd) return;
+        PD_WritePackedUInt64(pd, low);
+        PD_WritePackedUInt64(pd, high);
+    }
+
     static void PD_WriteUInt8(PacketData* pd, uint8 v) { if (pd) pd->WriteUInt8(v); }
     static void PD_WriteUInt16(PacketData* pd, uint16 v) { if (pd) pd->WriteUInt16(v); }
     static void PD_WriteUInt32(PacketData* pd, uint32 v) { if (pd) pd->WriteUInt32(v); }
@@ -201,6 +241,8 @@ namespace AngelScript
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteUInt32At(uint32, uint32)",   asFUNCTION(PD_WriteUInt32At),   asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "uint32 ReadUInt32At(uint32) const",    asFUNCTION(PD_ReadUInt32At),    asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "uint32 GetDataSize() const",           asFUNCTION(PD_GetDataSize),     asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "void WritePackedGuid(uint64, uint64)",  asFUNCTION(PD_WritePackedGuid),   asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "uint64 ReadPackedUInt64()",             asFUNCTION(PD_ReadPackedUInt64),  asCALL_CDECL_OBJFIRST);
 
         // Write methods
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteUInt8(uint8)", asFUNCTION(PD_WriteUInt8), asCALL_CDECL_OBJFIRST);
