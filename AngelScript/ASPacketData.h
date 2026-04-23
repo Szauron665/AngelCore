@@ -57,7 +57,8 @@ struct PacketData
     uint32 ReadBits(uint32 bitCount);
     void WriteBit(bool bit);
     void WriteBits(uint32 value, uint32 bitCount);
-    void FlushBits();  // Flush remaining bits to byte boundary
+    void FlushBits();       // Flush pending write bits to byte boundary
+    void ResetBitReader(); // Discard partial read byte, realign to byte boundary
     
     // Internal state for bit reading/writing
     uint8 _bitPos = 0;
@@ -137,6 +138,21 @@ inline void PacketData::FlushBits()
         _bitPos = 0;
         _writingBits = false;
     }
+    else if (_readingBits)
+    {
+        // Discard remaining bits in current byte — realign read cursor
+        _readingBits = false;
+        _bitPos = 0;
+        _currentByte = 0;
+    }
+}
+
+inline void PacketData::ResetBitReader()
+{
+    // Discard any partially-read byte and reset bit state — byte-aligns the read cursor
+    _readingBits = false;
+    _bitPos = 0;
+    _currentByte = 0;
 }
 
 #endif // ANGELSCRIPT_INTEGRATION
