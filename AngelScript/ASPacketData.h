@@ -71,17 +71,18 @@ inline bool PacketData::ReadBit()
 {
     if (_readPos >= data.size())
         return false;
-    
-    if (!_readingBits || _bitPos == 0)
+
+    if (!_readingBits || _bitPos == 8)
     {
         _currentByte = data[_readPos++];
         _readingBits = true;
         _writingBits = false;
-        _bitPos = 8;
+        _bitPos = 0;
     }
-    
-    _bitPos--;
-    return (_currentByte >> _bitPos) & 1;
+
+    bool bit = (_currentByte >> _bitPos) & 1;
+    _bitPos++;
+    return bit;
 }
 
 inline uint32 PacketData::ReadBits(uint32 bitCount)
@@ -89,60 +90,53 @@ inline uint32 PacketData::ReadBits(uint32 bitCount)
     uint32 value = 0;
     for (uint32 i = 0; i < bitCount; i++)
     {
-        value = (value << 1) | (ReadBit() ? 1 : 0);
+        value |= (ReadBit() ? 1u : 0u) << i;  // LSB first
     }
     return value;
 }
 
 inline void PacketData::WriteBit(bool bit)
 {
-    if (_writingBits)
-    {
-        // If we're switching from reading to writing, or vice versa
-        if (_readingBits)
-        {
-            FlushBits();
-            _readingBits = false;
-        }
-    }
-    else if (!_readingBits && _bitPos == 0)
+    if (!_writingBits)
     {
         _currentByte = 0;
-        _bitPos = 8;
+        _bitPos = 0;
+        _readingBits = false;
     }
-    
+
     _writingBits = true;
-    _readingBits = false;
-    _bitPos--;
-    
+
     if (bit)
-        _currentByte |= (1 << _bitPos);
-    
-    if (_bitPos == 0)
+        _currentByte |= (1u << _bitPos);  // LSB first
+
+    _bitPos++;
+
+    if (_bitPos == 8)
     {
         data.push_back(_currentByte);
         _currentByte = 0;
-        _bitPos = 8;
+        _bitPos = 0;
+        _writingBits = false;
     }
 }
 
 inline void PacketData::WriteBits(uint32 value, uint32 bitCount)
 {
-    for (int32 i = bitCount - 1; i >= 0; i--)
+    for (uint32 i = 0; i < bitCount; i++)
     {
-        WriteBit((value >> i) & 1);
+        WriteBit((value >> i) & 1);  // LSB first
     }
 }
 
 inline void PacketData::FlushBits()
 {
-    if (_writingBits && _bitPos != 8 && _bitPos != 0)
+    if (_writingBits && _bitPos != 0)
     {
         data.push_back(_currentByte);
         _currentByte = 0;
         _bitPos = 0;
+        _writingBits = false;
     }
-    _writingBits = false;
 }
 
 #endif // ANGELSCRIPT_INTEGRATION
