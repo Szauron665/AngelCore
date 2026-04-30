@@ -482,11 +482,18 @@ bool AngelScriptMgr::TriggerCustomHook_CharEnum(WorldSession* session, PacketDat
         int r = _context->Prepare(func);
         TC_LOG_INFO("server.angelscript", "[AS] CharEnum Prepare r={}", r);
         if (r < 0) continue;
+        TC_LOG_INFO("server.angelscript", "[AS] CharEnum session={} packetSize={}", session ? 1 : 0, enumPacket.size);
         _context->SetArgObject(0, session);
         _context->SetArgObject(1, &enumPacket);
         r = _context->Execute();
-        TC_LOG_INFO("server.angelscript", "[AS] CharEnum Execute r={}", r);
-        if (r == asEXECUTION_FINISHED && _context->GetReturnByte())
+        if (r == asEXECUTION_EXCEPTION)
+            TC_LOG_ERROR("server.angelscript", "[AS] CharEnum EXCEPTION: {} at {}:{}",
+                _context->GetExceptionString(),
+                _context->GetExceptionFunction() ? _context->GetExceptionFunction()->GetName() : "?",
+                _context->GetExceptionLineNumber());
+        bool retVal = (r == asEXECUTION_FINISHED) ? (_context->GetReturnByte() != 0) : false;
+        TC_LOG_INFO("server.angelscript", "[AS] CharEnum Execute r={} retVal={}", r, retVal ? 1 : 0);
+        if (retVal)
             return true;
     }
     return false;
