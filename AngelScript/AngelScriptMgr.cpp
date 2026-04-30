@@ -61,6 +61,8 @@
 #include <filesystem>
 #include <fstream>
 #include <fmt/format.h>
+#include <algorithm>
+#include <cstdio>
 namespace fs = std::filesystem;
 namespace AngelScript
 {
@@ -632,7 +634,13 @@ bool AngelScriptMgr::TriggerPacketReceive(WorldSession* s, WorldPacket& p, uint3
     {
         PacketData pd;
         pd.opcode = op;
-        if(p.size() > 0) { pd.data.assign(p.data(), p.data() + p.size()); }
+        // Slice from the current read position — TC's WorldPacket may have already
+        // consumed header bytes (rpos > 0). Using p.data() would give us those
+        // header bytes and shift the entire payload, breaking bit/byte parsing.
+        if (p.size() > p.rpos())
+        {
+            pd.data.assign(p.data() + p.rpos(), p.data() + p.size());
+        }
         pd.size = static_cast<uint32>(pd.data.size());
         if(_context->Prepare(oh) >= 0)
         {
