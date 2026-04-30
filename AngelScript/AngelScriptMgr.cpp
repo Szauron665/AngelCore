@@ -100,7 +100,7 @@ void AngelScriptMgr::Shutdown()
 void AngelScriptMgr::ReloadScripts()
 {
     if (!_enabled) return;
-    TC_LOG_INFO("angelscript", "Reloading AngelScript scripts...");
+    TC_LOG_INFO("server.angelscript", "Reloading AngelScript scripts...");
     ASWorldHooks::instance()->Clear(); ASPlayerHooks::instance()->Clear();
     ASCreatureHooks::instance()->Clear(); ASGameObjectHooks::instance()->Clear();
     ASSpellHooks::instance()->Clear(); ASQuestHooks::instance()->Clear();
@@ -362,7 +362,7 @@ bool AngelScriptMgr::CompileScript(const std::string& filename, const std::strin
     int r = builder.StartNewModule(_scriptEngine, moduleName.c_str());
     if (r < 0)
     {
-        TC_LOG_ERROR("angelscript", "[DEFENSE] Failed to start module '{}' — engine error {}", moduleName, r);
+        TC_LOG_ERROR("server.angelscript", "[DEFENSE] Failed to start module '{}' - engine error {}", moduleName, r);
         _scriptEngine->ClearMessageCallback();
         return false;
     }
@@ -370,7 +370,7 @@ bool AngelScriptMgr::CompileScript(const std::string& filename, const std::strin
     r = builder.AddSectionFromFile(filename.c_str());
     if (r < 0)
     {
-        TC_LOG_ERROR("angelscript", "[DEFENSE] Failed to read script file '{}' — file not found or unreadable", filename);
+        TC_LOG_ERROR("server.angelscript", "[DEFENSE] Failed to read script file '{}' - file not found or unreadable", filename);
         _scriptEngine->ClearMessageCallback();
         return false;
     }
@@ -393,9 +393,9 @@ bool AngelScriptMgr::CompileScript(const std::string& filename, const std::strin
     // Log warnings even on success
     if (!collector.warnings.empty())
     {
-        TC_LOG_WARN("angelscript", "Script '{}' compiled with {} warnings:", filename, collector.warnings.size());
+        TC_LOG_WARN("server.angelscript", "Script '{}' compiled with {} warnings:", filename, collector.warnings.size());
         for (auto const& w : collector.warnings)
-            TC_LOG_WARN("angelscript", "  WARNING: {}", w);
+            TC_LOG_WARN("server.angelscript", "  WARNING: {}", w);
     }
 
     _scriptEngine->ClearMessageCallback();
@@ -408,15 +408,15 @@ bool AngelScriptMgr::CompileScript(const std::string& filename, const std::strin
     if (asIScriptFunction* f = mod->GetFunctionByDecl("void main()"))
     {
         if (!ExecuteScriptFunction(f))
-            TC_LOG_ERROR("angelscript", "[DEFENSE] main() in '{}' failed to execute", filename);
+            TC_LOG_ERROR("server.angelscript", "[DEFENSE] main() in '{}' failed to execute", filename);
     }
     if (asIScriptFunction* f = mod->GetFunctionByDecl("void RegisterHooks()"))
     {
         if (!ExecuteScriptFunction(f))
-            TC_LOG_ERROR("angelscript", "[DEFENSE] RegisterHooks() in '{}' failed to execute", filename);
+            TC_LOG_ERROR("server.angelscript", "[DEFENSE] RegisterHooks() in '{}' failed to execute", filename);
     }
 
-    TC_LOG_INFO("angelscript", "Script '{}' compiled successfully", filename);
+    TC_LOG_INFO("server.angelscript", "Script '{}' compiled successfully", filename);
     return true;
 }
 
@@ -474,17 +474,14 @@ bool AngelScriptMgr::TriggerCustomHook_SendPlayerChoice(Player* player, int32 ch
 bool AngelScriptMgr::TriggerCustomHook_CharEnum(WorldSession* session, PacketData& enumPacket)
 {
     auto& hooks = _customHooks[static_cast<size_t>(CustomHookType::ON_CHAR_ENUM)];
-    TC_LOG_INFO("server.angelscript", "[DEBUG] TriggerCustomHook_CharEnum hookCount={}", hooks.size());
     for (auto& func : hooks)
     {
         if (!_context) break;
         int r = _context->Prepare(func);
-        TC_LOG_INFO("server.angelscript", "[DEBUG] CharEnum Prepare r={}", r);
         if (r < 0) continue;
         _context->SetArgObject(0, session);
         _context->SetArgObject(1, &enumPacket);
         r = _context->Execute();
-        TC_LOG_INFO("server.angelscript", "[DEBUG] CharEnum Execute r={}", r);
         if (r == asEXECUTION_FINISHED && _context->GetReturnByte())
             return true;
     }
@@ -530,12 +527,9 @@ void AngelScriptMgr::TriggerWorldHook(WorldHookType t) { EXEC_HOOKS(ASWorldHooks
 void AngelScriptMgr::TriggerWorldUpdate(uint32 d) { for(auto& f:ASWorldHooks::instance()->GetHooks(WorldHookType::ON_UPDATE)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgDWord(0,d);_context->Execute();} }
 void AngelScriptMgr::TriggerConsoleCommand(std::string& command) 
 {
-    TC_LOG_INFO("misc", "AngelScript console hook triggered with command: '{}'", command);
-    
     // Force check for AngelScript reload commands
     if (command == "reload angelscript" || command == "rel as")
     {
-        TC_LOG_INFO("misc", "Reloading AngelScript scripts (force check from console)...");
         ReloadScripts();
         printf("AngelScript scripts reloaded.\n");
         // Clear the command to prevent normal processing
@@ -552,12 +546,9 @@ void AngelScriptMgr::TriggerPlayerChat(Player* p, uint32 t, uint32 l, std::strin
 { 
     if(!p)return;
     
-    TC_LOG_INFO("misc", "AngelScript chat hook triggered with message: '{}' from player: {}", m, p ? p->GetName() : "null");
-    
     // Force check for AngelScript reload commands
     if (m == "reload angelscript" || m == "rel as")
     {
-        TC_LOG_INFO("misc", "AngelScript reload command detected in chat!");
         WorldSession* session = p->GetSession();
         if (session && !session->HasPermission(rbac::RBAC_PERM_COMMAND_RELOAD_ANGELSCRIPT))
         {
@@ -567,7 +558,6 @@ void AngelScriptMgr::TriggerPlayerChat(Player* p, uint32 t, uint32 l, std::strin
             return;
         }
 
-        TC_LOG_INFO("misc", "Reloading AngelScript scripts (force check from chat)...");
         ReloadScripts();
         
         ChatHandler handler(session);

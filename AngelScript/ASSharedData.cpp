@@ -15,7 +15,7 @@ namespace AngelScript
     void SharedDataRegistry::Set(const std::string& key, const SharedDataEntry& value)
     {
         _data[key] = value;
-        TC_LOG_DEBUG("angelscript", "SharedData: Set '{}'", key);
+        TC_LOG_DEBUG("server.angelscript", "SharedData: Set '{}'", key);
     }
 
     void SharedDataRegistry::SetInt(const std::string& key, int32 value)
@@ -94,13 +94,13 @@ namespace AngelScript
     void SharedDataRegistry::Remove(const std::string& key)
     {
         _data.erase(key);
-        TC_LOG_DEBUG("angelscript", "SharedData: Removed '{}'", key);
+        TC_LOG_DEBUG("server.angelscript", "SharedData: Removed '{}'", key);
     }
 
     void SharedDataRegistry::Clear()
     {
         _data.clear();
-        TC_LOG_INFO("angelscript", "SharedData: Cleared all data");
+        TC_LOG_INFO("server.angelscript", "SharedData: Cleared all data");
     }
 
     std::vector<std::string> SharedDataRegistry::GetKeys() const
@@ -133,7 +133,7 @@ namespace AngelScript
         {
             if (it->first.find(prefix) == 0)
             {
-                TC_LOG_DEBUG("angelscript", "SharedData: Removed '{}'", it->first);
+                TC_LOG_DEBUG("server.angelscript", "SharedData: Removed '{}'", it->first);
                 it = _data.erase(it);
             }
             else

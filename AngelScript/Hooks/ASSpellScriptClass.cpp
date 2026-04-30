@@ -45,7 +45,7 @@ namespace AngelScript
         asITypeInfo* type = _scriptObject->GetObjectType();
         if (!type)
         {
-            TC_LOG_ERROR("angelscript", "Failed to get object type from spell script class");
+            TC_LOG_ERROR("server.angelscript", "Failed to get object type from spell script class");
             return false;
         }
 
@@ -65,7 +65,7 @@ namespace AngelScript
         _onCooldownCheck = type->GetMethodByName("OnCooldownCheck");
         _onCastTimeCalc = type->GetMethodByName("OnCastTimeCalc");
 
-        TC_LOG_DEBUG("angelscript", "Initialized spell script class with {} methods",
+        TC_LOG_DEBUG("server.angelscript", "Initialized spell script class with {} methods",
             (_onCheckCast ? 1 : 0) + (_onPrepare ? 1 : 0) + (_onCast ? 1 : 0));
 
         return true;
@@ -186,7 +186,7 @@ namespace AngelScript
         if (script && script->IsValid())
         {
             _scripts[spellId] = std::move(script);
-            TC_LOG_INFO("angelscript", "Registered spell script class for spell {}", spellId);
+            TC_LOG_INFO("server.angelscript", "Registered spell script class for spell {}", spellId);
         }
     }
 

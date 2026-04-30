@@ -303,7 +303,7 @@ namespace AngelScript
 
     void RegisterDispatchScripts()
     {
-        TC_LOG_INFO("angelscript", "Registering AngelScript dispatch scripts with ScriptMgr...");
+        TC_LOG_INFO("server.angelscript", "Registering AngelScript dispatch scripts with ScriptMgr...");
 
         // TC's AddScript (called in base class constructors) requires a non-empty script context
         sScriptMgr->SetScriptContext("angelscript_dispatch");
@@ -323,7 +323,7 @@ namespace AngelScript
         // Reset context after registration
         sScriptMgr->SetScriptContext("");
 
-        TC_LOG_INFO("angelscript", "AngelScript dispatch scripts registered (10 scripts)");
+        TC_LOG_INFO("server.angelscript", "AngelScript dispatch scripts registered (10 scripts)");
     }
 
 } // namespace AngelScript

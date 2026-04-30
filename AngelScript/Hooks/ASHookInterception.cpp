@@ -34,7 +34,7 @@ void FunctionHookRegistry::RegisterHook(const std::string& hookName, asIScriptFu
     if (!func)
         return;
 
-    TC_LOG_INFO("angelscript", "Registering hook: {}", hookName);
+    TC_LOG_INFO("server.angelscript", "Registering hook: {}", hookName);
     _hooks[hookName] = func;
 }
 
@@ -43,7 +43,7 @@ void FunctionHookRegistry::UnregisterHook(const std::string& hookName)
     auto it = _hooks.find(hookName);
     if (it != _hooks.end())
     {
-        TC_LOG_INFO("angelscript", "Unregistering hook: {}", hookName);
+        TC_LOG_INFO("server.angelscript", "Unregistering hook: {}", hookName);
         _hooks.erase(it);
     }
 }
@@ -55,7 +55,7 @@ bool FunctionHookRegistry::HasHook(const std::string& hookName) const
 
 void FunctionHookRegistry::ClearAllHooks()
 {
-    TC_LOG_INFO("angelscript", "Clearing all function hooks");
+    TC_LOG_INFO("server.angelscript", "Clearing all function hooks");
     _hooks.clear();
 }
 
@@ -87,7 +87,7 @@ InterceptResult<Ret> FunctionHookRegistry::ExecuteHook(asIScriptFunction* func, 
     r = ctx->Execute();
     if (r != asEXECUTION_FINISHED)
     {
-        TC_LOG_ERROR("angelscript", "Hook execution failed: {}", r);
+        TC_LOG_ERROR("server.angelscript", "Hook execution failed: {}", r);
         ctx->Release();
         return result;
     }
