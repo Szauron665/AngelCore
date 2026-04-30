@@ -61,112 +61,147 @@ struct PacketData
     uint32 ReadBits(uint32 bitCount);
     void WriteBit(bool bit);
     void WriteBits(uint32 value, uint32 bitCount);
-    void FlushBits();       // Flush pending write bits to byte boundary
-    void ResetBitReader(); // Discard partial read byte, realign to byte boundary
-    
-    // Internal state for bit reading/writing
-    uint8 _bitPos = 0;
-    uint8 _currentByte = 0;
-    bool _readingBits = false;
-    bool _writingBits = false;
+    void FlushBits();
+    void ResetBitReader();
+
+    // TrinityCore ByteBuffer-compatible bit state.
+    // _bitpos == 8 (InitialBitPos) means: no active bit buffer.
+    static constexpr uint8 InitialBitPos = 8;
+    uint8 _bitpos = InitialBitPos;
+    uint8 _curbitval = 0;
 };
 
-// Inline implementations for bit operations
+// -----------------------------------------------------------------------------
+// Bit ops — direct port of src/server/shared/Packets/ByteBuffer.h
+// -----------------------------------------------------------------------------
+
 inline bool PacketData::ReadBit()
 {
-    // Load new byte only if we don't have one being read
-    if (!_readingBits)
+    if (_bitpos >= 8)
     {
         if (_readPos >= data.size())
             return false;
-        _currentByte = data[_readPos];
-        _readPos++; // Advance immediately so standard reads don't double-dip
-        _readingBits = true;
-        _writingBits = false;
-        _bitPos = 0;
+        _curbitval = data[_readPos++];
+        _bitpos = 0;
     }
-
-    bool bit = (_currentByte >> (7 - _bitPos)) & 1;
-    _bitPos++;
-    
-    // Clear reading state when byte is fully consumed
-    if (_bitPos >= 8)
-    {
-        _readingBits = false;
-        _bitPos = 0;
-    }
-    
-    return bit;
+    return ((_curbitval >> (8 - ++_bitpos)) & 1) != 0;
 }
 
 inline uint32 PacketData::ReadBits(uint32 bitCount)
 {
+    int32 bits = static_cast<int32>(bitCount);
     uint32 value = 0;
-    for (uint32 i = 0; i < bitCount; i++)
+
+    if (bits > 8 - static_cast<int32>(_bitpos))
     {
-        value = (value << 1) | (ReadBit() ? 1u : 0u);  // MSB first
+        // whatever is left in the bit buffer
+        int32 bitsInBuffer = 8 - static_cast<int32>(_bitpos);
+        value = (_curbitval & ((1u << bitsInBuffer) - 1)) << (bits - bitsInBuffer);
+        bits -= bitsInBuffer;
+
+        while (bits >= 8)
+        {
+            if (_readPos >= data.size()) return value;
+            uint8 b = data[_readPos++];
+            bits -= 8;
+            value |= static_cast<uint32>(b) << bits;
+        }
+
+        if (bits)
+        {
+            if (_readPos >= data.size()) return value;
+            _curbitval = data[_readPos++];
+            value |= (_curbitval >> (8 - bits)) & ((1u << bits) - 1);
+            _bitpos = static_cast<uint8>(bits);
+        }
+        else
+        {
+            _bitpos = 8;
+        }
     }
+    else
+    {
+        value = (_curbitval >> (8 - _bitpos - bits)) & ((1u << bits) - 1);
+        _bitpos += static_cast<uint8>(bits);
+    }
+
     return value;
 }
 
 inline void PacketData::WriteBit(bool bit)
 {
-    if (!_writingBits)
-    {
-        _currentByte = 0;
-        _bitPos = 0;
-        _readingBits = false;
-    }
-
-    _writingBits = true;
-
+    if (_bitpos == InitialBitPos)
+        _bitpos = 8;
+    --_bitpos;
     if (bit)
-        _currentByte |= (1u << (7 - _bitPos));  // MSB first
+        _curbitval |= (1u << _bitpos);
 
-    _bitPos++;
-
-    if (_bitPos == 8)
+    if (_bitpos == 0)
     {
-        data.push_back(_currentByte);
-        _currentByte = 0;
-        _bitPos = 0;
-        _writingBits = false;
+        data.push_back(_curbitval);
+        _bitpos = InitialBitPos;
+        _curbitval = 0;
     }
 }
 
 inline void PacketData::WriteBits(uint32 value, uint32 bitCount)
 {
-    for (uint32 i = 0; i < bitCount; i++)
+    int32 bits = static_cast<int32>(bitCount);
+    value &= (1u << bits) - 1;
+
+    if (_bitpos == InitialBitPos)
+        _bitpos = 8;
+
+    if (bits > static_cast<int32>(_bitpos))
     {
-        WriteBit((value >> (bitCount - 1 - i)) & 1);  // MSB first
+        _curbitval |= static_cast<uint8>(value >> (bits - _bitpos));
+        bits -= _bitpos;
+        _bitpos = 8;
+        data.push_back(_curbitval);
+        _curbitval = 0;
+
+        while (bits >= 8)
+        {
+            bits -= 8;
+            data.push_back(static_cast<uint8>((value >> bits) & 0xFF));
+        }
+
+        _bitpos = static_cast<uint8>(8 - bits);
+        _curbitval = static_cast<uint8>((value & ((1u << bits) - 1)) << _bitpos);
+    }
+    else
+    {
+        _bitpos -= static_cast<uint8>(bits);
+        _curbitval |= static_cast<uint8>(value << _bitpos);
+
+        if (_bitpos == 0)
+        {
+            data.push_back(_curbitval);
+            _bitpos = InitialBitPos;
+            _curbitval = 0;
+        }
     }
 }
 
 inline void PacketData::FlushBits()
 {
-    if (_writingBits && _bitPos != 0)
+    // Matches ByteBuffer::FlushBits. Emits the in-progress write byte if any.
+    if (_bitpos == 8 || _bitpos == InitialBitPos)
     {
-        data.push_back(_currentByte);
-        _currentByte = 0;
-        _bitPos = 0;
-        _writingBits = false;
+        _bitpos = InitialBitPos;
+        _curbitval = 0;
+        return;
     }
-    else if (_readingBits)
-    {
-        // Discard remaining bits in current byte — realign read cursor
-        _readingBits = false;
-        _bitPos = 0;
-        _currentByte = 0;
-    }
+    data.push_back(_curbitval);
+    _bitpos = InitialBitPos;
+    _curbitval = 0;
 }
 
 inline void PacketData::ResetBitReader()
 {
-    // Discard any partially-read byte and reset bit state — byte-aligns the read cursor
-    // Note: _readPos is already at the next byte due to ReadBit advancing immediately
-    _readingBits = false;
-    _bitPos = 0;
-    _currentByte = 0;
+    // Matches ByteBuffer::ResetBitPos — discard partial bit buffer.
+    _bitpos = InitialBitPos;
+    _curbitval = 0;
 }
 
 // String read - fixed length bytes
@@ -390,17 +425,15 @@ inline void PacketData::WriteCString(const std::string& val)
 inline void PacketData::ResetReadPos()
 {
     _readPos = 0;
-    _readingBits = false;
-    _bitPos = 0;
-    _currentByte = 0;
+    _bitpos = InitialBitPos;
+    _curbitval = 0;
 }
 
 inline void PacketData::ResetWritePos()
 {
     _writePos = 0;
-    _writingBits = false;
-    _bitPos = 0;
-    _currentByte = 0;
+    _bitpos = InitialBitPos;
+    _curbitval = 0;
 }
 
 inline size_t PacketData::GetReadPos() const
