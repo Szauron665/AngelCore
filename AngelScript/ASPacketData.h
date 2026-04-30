@@ -353,5 +353,70 @@ inline void PacketData::WriteDouble(double val)
     WriteUInt64(u.i);
 }
 
+// String methods
+inline std::string PacketData::ReadString()
+{
+    ResetBitReader();
+    std::string result;
+    while (_readPos < data.size())
+    {
+        char c = static_cast<char>(data[_readPos++]);
+        if (c == '\0')
+            break;
+        result += c;
+    }
+    return result;
+}
+
+inline std::string PacketData::ReadCString()
+{
+    return ReadString(); // Same as ReadString - null-terminated
+}
+
+inline void PacketData::WriteString(const std::string& val)
+{
+    FlushBits();
+    for (char c : val)
+        data.push_back(static_cast<uint8>(c));
+    data.push_back(0); // Null terminator
+}
+
+inline void PacketData::WriteCString(const std::string& val)
+{
+    WriteString(val);
+}
+
+// Position management
+inline void PacketData::ResetReadPos()
+{
+    _readPos = 0;
+    _readingBits = false;
+    _bitPos = 0;
+    _currentByte = 0;
+}
+
+inline void PacketData::ResetWritePos()
+{
+    _writePos = 0;
+    _writingBits = false;
+    _bitPos = 0;
+    _currentByte = 0;
+}
+
+inline size_t PacketData::GetReadPos() const
+{
+    return _readPos;
+}
+
+inline size_t PacketData::GetWritePos() const
+{
+    return _writePos;
+}
+
+inline bool PacketData::HasMoreData() const
+{
+    return _readPos < data.size();
+}
+
 #endif // ANGELSCRIPT_INTEGRATION
 #endif // ASPACKETDATA_H
