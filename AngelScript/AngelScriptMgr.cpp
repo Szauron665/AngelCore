@@ -106,6 +106,7 @@ void AngelScriptMgr::ReloadScripts()
     ASSpellHooks::instance()->Clear(); ASQuestHooks::instance()->Clear();
     ASCraftingHooks::instance()->Clear(); ASPacketHooks::instance()->Clear();
     ASInstanceHooks::instance()->Clear(); ASBattlegroundHooks::instance()->Clear();
+    for (auto& hooks : _customHooks) hooks.clear();
     _creatureAIFactories.clear(); _gameObjectAIFactories.clear();
     UnloadScripts(); LoadScripts();
     TC_LOG_INFO("server.angelscript", "Reload complete ({} modules)", _modules.size());
