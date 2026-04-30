@@ -86,7 +86,7 @@ inline bool PacketData::ReadBit()
         _bitPos = 0;
     }
 
-    bool bit = (_currentByte >> _bitPos) & 1;
+    bool bit = (_currentByte >> (7 - _bitPos)) & 1;
     _bitPos++;
     
     // Clear reading state when byte is fully consumed
@@ -104,7 +104,7 @@ inline uint32 PacketData::ReadBits(uint32 bitCount)
     uint32 value = 0;
     for (uint32 i = 0; i < bitCount; i++)
     {
-        value |= (ReadBit() ? 1u : 0u) << i;  // LSB first
+        value = (value << 1) | (ReadBit() ? 1u : 0u);  // MSB first
     }
     return value;
 }
@@ -121,7 +121,7 @@ inline void PacketData::WriteBit(bool bit)
     _writingBits = true;
 
     if (bit)
-        _currentByte |= (1u << _bitPos);  // LSB first
+        _currentByte |= (1u << (7 - _bitPos));  // MSB first
 
     _bitPos++;
 
@@ -138,7 +138,7 @@ inline void PacketData::WriteBits(uint32 value, uint32 bitCount)
 {
     for (uint32 i = 0; i < bitCount; i++)
     {
-        WriteBit((value >> i) & 1);  // LSB first
+        WriteBit((value >> (bitCount - 1 - i)) & 1);  // MSB first
     }
 }
 
