@@ -416,7 +416,6 @@ bool AngelScriptMgr::CompileScript(const std::string& filename, const std::strin
             TC_LOG_ERROR("server.angelscript", "[DEFENSE] RegisterHooks() in '{}' failed to execute", filename);
     }
 
-    TC_LOG_INFO("server.angelscript", "Script '{}' compiled successfully", filename);
     return true;
 }
 
