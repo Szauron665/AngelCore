@@ -108,7 +108,7 @@ void AngelScriptMgr::ReloadScripts()
     ASInstanceHooks::instance()->Clear(); ASBattlegroundHooks::instance()->Clear();
     _creatureAIFactories.clear(); _gameObjectAIFactories.clear();
     UnloadScripts(); LoadScripts();
-    TC_LOG_INFO("angelscript", "Reload complete ({} modules)", _modules.size());
+    TC_LOG_INFO("server.angelscript", "Reload complete ({} modules)", _modules.size());
 }
 
 void AngelScriptMgr::ReloadScript(const std::string& name)
@@ -116,7 +116,7 @@ void AngelScriptMgr::ReloadScript(const std::string& name)
     if (!_enabled) return;
     std::string fn = name; if (fn.find(".as") == std::string::npos) fn += ".as";
     std::string path = _scriptPath + "/" + fn;
-    if (!fs::exists(path)) { TC_LOG_ERROR("angelscript", "Script not found: {}", path); return; }
+    if (!fs::exists(path)) { TC_LOG_ERROR("server.angelscript", "Script not found: {}", path); return; }
     auto it = _modules.find(fn);
     if (it != _modules.end()) { if (it->second) it->second->Discard(); _scriptEngine->DiscardModule(fn.c_str()); _modules.erase(it); }
     CompileScript(path, fn);
@@ -140,9 +140,9 @@ bool AngelScriptMgr::SetupEngine()
     _scriptEngine->SetMessageCallback(asFUNCTION(+[](const asSMessageInfo* msg, void*) {
         switch (msg->type)
         {
-        case asMSGTYPE_ERROR:       TC_LOG_ERROR("angelscript", "[AS-ERR] {}({}): {}", msg->section, msg->row, msg->message); break;
-        case asMSGTYPE_WARNING:     TC_LOG_WARN ("angelscript", "[AS-WRN] {}({}): {}", msg->section, msg->row, msg->message); break;
-        case asMSGTYPE_INFORMATION: TC_LOG_INFO ("angelscript", "[AS-INF] {}({}): {}", msg->section, msg->row, msg->message); break;
+        case asMSGTYPE_ERROR:       TC_LOG_ERROR("server.angelscript", "[AS-ERR] {}({}): {}", msg->section, msg->row, msg->message); break;
+        case asMSGTYPE_WARNING:     TC_LOG_WARN ("server.angelscript", "[AS-WRN] {}({}): {}", msg->section, msg->row, msg->message); break;
+        case asMSGTYPE_INFORMATION: TC_LOG_INFO ("server.angelscript", "[AS-INF] {}({}): {}", msg->section, msg->row, msg->message); break;
         }
     }), nullptr, asCALL_CDECL);
     RegisterStandardAddons(); RegisterTrinityCoreAPI();
@@ -221,7 +221,7 @@ void AngelScriptMgr::RegisterTrinityCoreAPI()
     RegisterSharedDataAPI(); RegisterScriptClassesAPI(); RegisterEnhancedPacketAPI();
     RegisterScriptAttributesAPI(); RegisterInstanceAPI(); RegisterBattlegroundAPI();
     RegisterArenaAPI(); RegisterMapAPI(); RegisterGroupGuildAPI(); RegisterItemAuctionAPI();
-    TC_LOG_INFO("angelscript", "TrinityCore API registered");
+    TC_LOG_INFO("server.angelscript", "TrinityCore API registered");
 }
 
 // Delegates to API/ files
@@ -353,7 +353,7 @@ bool AngelScriptMgr::CompileScript(const std::string& filename, const std::strin
             case asMSGTYPE_WARNING: sev = "WRN"; warnings.push_back(fmt::format("{}({}): {}", msg->section, msg->row, msg->message)); break;
             default:                sev = "INF"; break;
             }
-            TC_LOG_INFO("angelscript", "[AS-{}] {}({}): {}", sev, msg->section, msg->row, msg->message);
+            TC_LOG_INFO("server.angelscript", "[AS-{}] {}({}): {}", sev, msg->section, msg->row, msg->message);
         }
     } collector;
 
@@ -474,14 +474,17 @@ bool AngelScriptMgr::TriggerCustomHook_SendPlayerChoice(Player* player, int32 ch
 bool AngelScriptMgr::TriggerCustomHook_CharEnum(WorldSession* session, PacketData& enumPacket)
 {
     auto& hooks = _customHooks[static_cast<size_t>(CustomHookType::ON_CHAR_ENUM)];
+    TC_LOG_INFO("server.angelscript", "[DEBUG] TriggerCustomHook_CharEnum hookCount={}", hooks.size());
     for (auto& func : hooks)
     {
         if (!_context) break;
         int r = _context->Prepare(func);
+        TC_LOG_INFO("server.angelscript", "[DEBUG] CharEnum Prepare r={}", r);
         if (r < 0) continue;
         _context->SetArgObject(0, session);
         _context->SetArgObject(1, &enumPacket);
         r = _context->Execute();
+        TC_LOG_INFO("server.angelscript", "[DEBUG] CharEnum Execute r={}", r);
         if (r == asEXECUTION_FINISHED && _context->GetReturnByte())
             return true;
     }
