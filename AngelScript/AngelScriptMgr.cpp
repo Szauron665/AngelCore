@@ -627,7 +627,7 @@ void AngelScriptMgr::TriggerUnitDamageModified(Unit* t, Unit* a, int32& d) { if(
 bool AngelScriptMgr::TriggerPacketReceive(WorldSession* s, WorldPacket& p, uint32 op)
 {
     if(!s) return false;
-    auto* oh=ASPacketHooks::instance()->GetOpcodeHandler(static_cast<uint16>(op));
+    auto* oh=ASPacketHooks::instance()->GetOpcodeHandler(op);
     if(oh && _context)
     {
         PacketData pd;
@@ -639,7 +639,7 @@ bool AngelScriptMgr::TriggerPacketReceive(WorldSession* s, WorldPacket& p, uint3
             _context->SetArgObject(0, s);
             _context->SetArgObject(1, &pd);
             if(_context->Execute() == asEXECUTION_FINISHED && _context->GetReturnByte() != 0)
-                return ASPacketHooks::instance()->ShouldBlockOriginal(static_cast<uint16>(op));
+                return ASPacketHooks::instance()->ShouldBlockOriginal(op);
         }
     }
     for(auto& f:ASPacketHooks::instance()->GetHooks(PacketHookType::ON_PACKET_RECEIVE)){if(!_context)break;if(_context->Prepare(f)<0)continue;_context->SetArgObject(0,s);_context->SetArgObject(1,&p);_context->SetArgDWord(2,op);if(_context->Execute()==asEXECUTION_FINISHED&&_context->GetReturnByte()!=0)return true;}

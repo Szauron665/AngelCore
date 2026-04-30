@@ -28,25 +28,25 @@ namespace AngelScript
         static ASPacketHooks* instance();
 
         void RegisterScript(PacketHookType type, asIScriptFunction* func);
-        void RegisterOpcodeHandler(uint16 opcode, asIScriptFunction* func, bool blockOriginal = false);
-        void UnregisterOpcodeHandler(uint16 opcode);
+        void RegisterOpcodeHandler(uint32 opcode, asIScriptFunction* func, bool blockOriginal = false);
+        void UnregisterOpcodeHandler(uint32 opcode);
         
         const std::vector<asIScriptFunction*>& GetHooks(PacketHookType type) const;
-        asIScriptFunction* GetOpcodeHandler(uint16 opcode) const;
-        bool ShouldBlockOriginal(uint16 opcode) const;
+        asIScriptFunction* GetOpcodeHandler(uint32 opcode) const;
+        bool ShouldBlockOriginal(uint32 opcode) const;
         
         void Clear();
         
     private:
         struct OpcodeHandlerEntry
         {
-            uint16 opcode;
+            uint32 opcode;
             asIScriptFunction* handler;
             bool blockOriginal;
         };
 
         std::vector<std::vector<asIScriptFunction*>> _hooks;
-        std::map<uint16, OpcodeHandlerEntry> _opcodeHandlers;
+        std::map<uint32, OpcodeHandlerEntry> _opcodeHandlers;
     };
 
 } // namespace AngelScript

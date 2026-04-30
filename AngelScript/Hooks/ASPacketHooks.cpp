@@ -42,7 +42,7 @@ namespace AngelScript
     }
 
     // Opcode-specific handlers
-    void ASPacketHooks::RegisterOpcodeHandler(uint16 opcode, asIScriptFunction* func, bool blockOriginal)
+    void ASPacketHooks::RegisterOpcodeHandler(uint32 opcode, asIScriptFunction* func, bool blockOriginal)
     {
         if (!func)
             return;
@@ -54,14 +54,14 @@ namespace AngelScript
         _opcodeHandlers[opcode] = entry;
     }
 
-    void ASPacketHooks::UnregisterOpcodeHandler(uint16 opcode)
+    void ASPacketHooks::UnregisterOpcodeHandler(uint32 opcode)
     {
         auto it = _opcodeHandlers.find(opcode);
         if (it != _opcodeHandlers.end())
             _opcodeHandlers.erase(it);
     }
 
-    asIScriptFunction* ASPacketHooks::GetOpcodeHandler(uint16 opcode) const
+    asIScriptFunction* ASPacketHooks::GetOpcodeHandler(uint32 opcode) const
     {
         auto it = _opcodeHandlers.find(opcode);
         if (it != _opcodeHandlers.end())
@@ -69,7 +69,7 @@ namespace AngelScript
         return nullptr;
     }
 
-    bool ASPacketHooks::ShouldBlockOriginal(uint16 opcode) const
+    bool ASPacketHooks::ShouldBlockOriginal(uint32 opcode) const
     {
         auto it = _opcodeHandlers.find(opcode);
         if (it != _opcodeHandlers.end())

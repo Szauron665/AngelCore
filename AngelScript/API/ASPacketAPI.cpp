@@ -54,11 +54,11 @@ namespace AngelScript
     static void RegisterOpcodeHandler(uint32 opcode, asIScriptFunction* func, bool blockOriginal)
     {
         if (!func) return;
-        ASPacketHooks::instance()->RegisterOpcodeHandler(static_cast<uint16>(opcode), func, blockOriginal);
+        ASPacketHooks::instance()->RegisterOpcodeHandler(opcode, func, blockOriginal);
     }
     static void UnregisterOpcodeHandler(uint32 opcode)
     {
-        ASPacketHooks::instance()->UnregisterOpcodeHandler(static_cast<uint16>(opcode));
+        ASPacketHooks::instance()->UnregisterOpcodeHandler(opcode);
     }
 
     // ---- PacketData wrappers (from ASPacketData.h) ----
