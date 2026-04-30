@@ -236,47 +236,41 @@ inline uint64 PacketData::ReadPackedUInt64()
 
 inline void PacketData::ReadPackedGuid(uint64& low, uint64& high)
 {
-    low = ReadPackedUInt64();
-    high = ReadPackedUInt64();
+    // WoW ReadPackedGuid128: read low-mask byte, high-mask byte, then non-zero bytes for all 16 slots
+    ResetBitReader();
+    uint8 maskLow  = ReadUInt8();
+    uint8 maskHigh = ReadUInt8();
+    low = 0; high = 0;
+    for (uint8 i = 0; i < 8; ++i)
+        if (maskLow & (1u << i))
+            low |= (static_cast<uint64>(ReadUInt8()) << (i * 8));
+    for (uint8 i = 0; i < 8; ++i)
+        if (maskHigh & (1u << i))
+            high |= (static_cast<uint64>(ReadUInt8()) << (i * 8));
 }
 
 inline void PacketData::WritePackedGuid(uint64 low, uint64 high)
 {
     FlushBits(); // Ensure byte alignment
-    
-    // Write low part
-    uint8 maskLow = 0;
-    uint8 bytesLow[8];
-    uint8 countLow = 0;
+
+    // WoW PackedGuid128 format: maskLow, maskHigh, then low non-zero bytes, then high non-zero bytes
+    uint8 maskLow = 0, maskHigh = 0;
+    uint8 bytesLow[8], bytesHigh[8];
+    uint8 countLow = 0, countHigh = 0;
     for (uint8 i = 0; i < 8; ++i)
     {
-        uint8 byteVal = (low >> (i * 8)) & 0xFF;
-        if (byteVal != 0)
-        {
-            maskLow |= (1 << i);
-            bytesLow[countLow++] = byteVal;
-        }
+        uint8 b = static_cast<uint8>(low >> (i * 8));
+        if (b) { maskLow |= (1u << i); bytesLow[countLow++] = b; }
+    }
+    for (uint8 i = 0; i < 8; ++i)
+    {
+        uint8 b = static_cast<uint8>(high >> (i * 8));
+        if (b) { maskHigh |= (1u << i); bytesHigh[countHigh++] = b; }
     }
     WriteUInt8(maskLow);
-    for (uint8 i = 0; i < countLow; ++i)
-        WriteUInt8(bytesLow[i]);
-    
-    // Write high part
-    uint8 maskHigh = 0;
-    uint8 bytesHigh[8];
-    uint8 countHigh = 0;
-    for (uint8 i = 0; i < 8; ++i)
-    {
-        uint8 byteVal = (high >> (i * 8)) & 0xFF;
-        if (byteVal != 0)
-        {
-            maskHigh |= (1 << i);
-            bytesHigh[countHigh++] = byteVal;
-        }
-    }
     WriteUInt8(maskHigh);
-    for (uint8 i = 0; i < countHigh; ++i)
-        WriteUInt8(bytesHigh[i]);
+    for (uint8 i = 0; i < countLow; ++i) WriteUInt8(bytesLow[i]);
+    for (uint8 i = 0; i < countHigh; ++i) WriteUInt8(bytesHigh[i]);
 }
 
 // Standard read methods with byte alignment
