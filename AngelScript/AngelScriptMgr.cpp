@@ -447,6 +447,8 @@ void AngelScriptMgr::RegisterCustomHook(CustomHookType type, asIScriptFunction* 
 {
     if (!func) return;
     _customHooks[static_cast<size_t>(type)].push_back(func);
+    TC_LOG_INFO("server.angelscript", "[AS] RegisterCustomHook type={} totalHooks={}",
+        static_cast<size_t>(type), _customHooks[static_cast<size_t>(type)].size());
 }
 
 bool AngelScriptMgr::TriggerCustomHook_SendPlayerChoice(Player* player, int32 choiceId)
@@ -473,14 +475,17 @@ bool AngelScriptMgr::TriggerCustomHook_SendPlayerChoice(Player* player, int32 ch
 bool AngelScriptMgr::TriggerCustomHook_CharEnum(WorldSession* session, PacketData& enumPacket)
 {
     auto& hooks = _customHooks[static_cast<size_t>(CustomHookType::ON_CHAR_ENUM)];
+    TC_LOG_INFO("server.angelscript", "[AS] TriggerCustomHook_CharEnum hookCount={}", hooks.size());
     for (auto& func : hooks)
     {
-        if (!_context) break;
+        if (!_context) { TC_LOG_ERROR("server.angelscript", "[AS] CharEnum: _context is null"); break; }
         int r = _context->Prepare(func);
+        TC_LOG_INFO("server.angelscript", "[AS] CharEnum Prepare r={}", r);
         if (r < 0) continue;
         _context->SetArgObject(0, session);
         _context->SetArgObject(1, &enumPacket);
         r = _context->Execute();
+        TC_LOG_INFO("server.angelscript", "[AS] CharEnum Execute r={}", r);
         if (r == asEXECUTION_FINISHED && _context->GetReturnByte())
             return true;
     }
