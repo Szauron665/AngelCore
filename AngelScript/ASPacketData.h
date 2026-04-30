@@ -51,6 +51,7 @@ struct PacketData
     
     // Position management
     void ResetReadPos();
+    void SetReadPos(size_t pos);
     void ResetWritePos();
     size_t GetReadPos() const;
     size_t GetWritePos() const;
@@ -419,6 +420,13 @@ inline void PacketData::WriteCString(const std::string& val)
 inline void PacketData::ResetReadPos()
 {
     _readPos = 0;
+    _bitpos = InitialBitPos;
+    _curbitval = 0;
+}
+
+inline void PacketData::SetReadPos(size_t pos)
+{
+    _readPos = (pos <= data.size()) ? pos : data.size();
     _bitpos = InitialBitPos;
     _curbitval = 0;
 }

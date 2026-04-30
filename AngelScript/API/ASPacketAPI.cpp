@@ -150,6 +150,7 @@ namespace AngelScript
     static void PD_WriteCString(PacketData* pd, const std::string& v) { if (pd) pd->WriteCString(v); }
 
     static void PD_ResetReadPos(PacketData* pd) { if (pd) pd->ResetReadPos(); }
+    static void PD_SetReadPos(PacketData* pd, uint32 pos) { if (pd) pd->SetReadPos(pos); }
     static void PD_ResetWritePos(PacketData* pd) { if (pd) pd->ResetWritePos(); }
     static uint32 PD_GetReadPos(PacketData* pd) { return pd ? static_cast<uint32>(pd->GetReadPos()) : 0; }
     static uint32 PD_GetWritePos(PacketData* pd) { return pd ? static_cast<uint32>(pd->GetWritePos()) : 0; }
@@ -252,6 +253,7 @@ namespace AngelScript
 
         // Position
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void ResetReadPos()", asFUNCTION(PD_ResetReadPos), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "void SetReadPos(uint32)", asFUNCTION(PD_SetReadPos), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void ResetWritePos()", asFUNCTION(PD_ResetWritePos), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "uint32 GetReadPos() const", asFUNCTION(PD_GetReadPos), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "uint32 GetWritePos() const", asFUNCTION(PD_GetWritePos), asCALL_CDECL_OBJFIRST);
