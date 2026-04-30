@@ -96,31 +96,12 @@ namespace AngelScript
 
     static std::string PD_ReadBytes(PacketData* pd, uint32 len)
     {
-        if (!pd || len == 0) return "";
-        std::string out;
-        out.reserve(len);
-        for (uint32 i = 0; i < len; ++i)
-        {
-            if (pd->_readPos >= pd->data.size()) break;
-            out.push_back(static_cast<char>(pd->data[pd->_readPos++]));
-        }
-        return out;
+        return pd ? pd->ReadBytes(len) : "";
     }
 
     static uint64 PD_ReadPackedUInt64(PacketData* pd)
     {
-        if (!pd || pd->_readPos >= pd->data.size()) return 0;
-        uint8 mask = pd->data[pd->_readPos++];
-        uint64 result = 0;
-        for (int i = 0; i < 8; ++i)
-        {
-            if (mask & (1 << i))
-            {
-                if (pd->_readPos >= pd->data.size()) break;
-                result |= static_cast<uint64>(pd->data[pd->_readPos++]) << (i * 8);
-            }
-        }
-        return result;
+        return pd ? pd->ReadPackedUInt64() : 0;
     }
 
     static void PD_WritePackedUInt64(PacketData* pd, uint64 val)

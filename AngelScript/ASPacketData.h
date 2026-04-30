@@ -30,6 +30,9 @@ struct PacketData
     double ReadDouble();
     std::string ReadString();
     std::string ReadCString();
+    std::string ReadBytes(uint32 length);
+    uint64 ReadPackedUInt64();
+    void ReadPackedGuid(uint64& low, uint64& high);
     
     // Write methods
     void WriteUInt8(uint8 val);
@@ -44,6 +47,7 @@ struct PacketData
     void WriteDouble(double val);
     void WriteString(const std::string& val);
     void WriteCString(const std::string& val);
+    void WritePackedGuid(uint64 low, uint64 high);
     
     // Position management
     void ResetReadPos();
@@ -70,15 +74,13 @@ struct PacketData
 // Inline implementations for bit operations
 inline bool PacketData::ReadBit()
 {
-    if (_readPos >= data.size() && !_readingBits)
-        return false;
-
     // Load new byte only if we don't have one being read
     if (!_readingBits)
     {
         if (_readPos >= data.size())
             return false;
         _currentByte = data[_readPos];
+        _readPos++; // Advance immediately so standard reads don't double-dip
         _readingBits = true;
         _writingBits = false;
         _bitPos = 0;
@@ -87,10 +89,9 @@ inline bool PacketData::ReadBit()
     bool bit = (_currentByte >> _bitPos) & 1;
     _bitPos++;
     
-    // Only advance read position and clear reading state when byte is fully consumed
+    // Clear reading state when byte is fully consumed
     if (_bitPos >= 8)
     {
-        _readPos++;
         _readingBits = false;
         _bitPos = 0;
     }
@@ -162,9 +163,194 @@ inline void PacketData::FlushBits()
 inline void PacketData::ResetBitReader()
 {
     // Discard any partially-read byte and reset bit state — byte-aligns the read cursor
+    // Note: _readPos is already at the next byte due to ReadBit advancing immediately
     _readingBits = false;
     _bitPos = 0;
     _currentByte = 0;
+}
+
+// String read - fixed length bytes
+inline std::string PacketData::ReadBytes(uint32 length)
+{
+    ResetBitReader(); // Ensure byte alignment
+    if (_readPos + length > data.size()) return "";
+    std::string s((char*)&data[_readPos], length);
+    _readPos += length;
+    return s;
+}
+
+// Packed GUID reading (WoW format: mask byte + non-zero bytes)
+inline uint64 PacketData::ReadPackedUInt64()
+{
+    ResetBitReader(); // Ensure byte alignment
+    uint8 mask = ReadUInt8();
+    uint64 value = 0;
+    for (uint8 i = 0; i < 8; ++i)
+    {
+        if (mask & (1 << i))
+        {
+            if (_readPos < data.size())
+            {
+                uint64 byteVal = data[_readPos++];
+                value |= (byteVal << (i * 8));
+            }
+        }
+    }
+    return value;
+}
+
+inline void PacketData::ReadPackedGuid(uint64& low, uint64& high)
+{
+    low = ReadPackedUInt64();
+    high = ReadPackedUInt64();
+}
+
+inline void PacketData::WritePackedGuid(uint64 low, uint64 high)
+{
+    FlushBits(); // Ensure byte alignment
+    
+    // Write low part
+    uint8 maskLow = 0;
+    uint8 bytesLow[8];
+    uint8 countLow = 0;
+    for (uint8 i = 0; i < 8; ++i)
+    {
+        uint8 byteVal = (low >> (i * 8)) & 0xFF;
+        if (byteVal != 0)
+        {
+            maskLow |= (1 << i);
+            bytesLow[countLow++] = byteVal;
+        }
+    }
+    WriteUInt8(maskLow);
+    for (uint8 i = 0; i < countLow; ++i)
+        WriteUInt8(bytesLow[i]);
+    
+    // Write high part
+    uint8 maskHigh = 0;
+    uint8 bytesHigh[8];
+    uint8 countHigh = 0;
+    for (uint8 i = 0; i < 8; ++i)
+    {
+        uint8 byteVal = (high >> (i * 8)) & 0xFF;
+        if (byteVal != 0)
+        {
+            maskHigh |= (1 << i);
+            bytesHigh[countHigh++] = byteVal;
+        }
+    }
+    WriteUInt8(maskHigh);
+    for (uint8 i = 0; i < countHigh; ++i)
+        WriteUInt8(bytesHigh[i]);
+}
+
+// Standard read methods with byte alignment
+inline uint8 PacketData::ReadUInt8()
+{
+    ResetBitReader();
+    if (_readPos >= data.size()) return 0;
+    return data[_readPos++];
+}
+
+inline uint16 PacketData::ReadUInt16()
+{
+    ResetBitReader();
+    if (_readPos + 2 > data.size()) return 0;
+    uint16 val = *(uint16*)&data[_readPos];
+    _readPos += 2;
+    return val;
+}
+
+inline uint32 PacketData::ReadUInt32()
+{
+    ResetBitReader();
+    if (_readPos + 4 > data.size()) return 0;
+    uint32 val = *(uint32*)&data[_readPos];
+    _readPos += 4;
+    return val;
+}
+
+inline uint64 PacketData::ReadUInt64()
+{
+    ResetBitReader();
+    if (_readPos + 8 > data.size()) return 0;
+    uint64 val = *(uint64*)&data[_readPos];
+    _readPos += 8;
+    return val;
+}
+
+inline int8 PacketData::ReadInt8() { return static_cast<int8>(ReadUInt8()); }
+inline int16 PacketData::ReadInt16() { return static_cast<int16>(ReadUInt16()); }
+inline int32 PacketData::ReadInt32() { return static_cast<int32>(ReadUInt32()); }
+inline int64 PacketData::ReadInt64() { return static_cast<int64>(ReadUInt64()); }
+
+inline float PacketData::ReadFloat()
+{
+    ResetBitReader();
+    if (_readPos + 4 > data.size()) return 0.0f;
+    float val = *(float*)&data[_readPos];
+    _readPos += 4;
+    return val;
+}
+
+inline double PacketData::ReadDouble()
+{
+    ResetBitReader();
+    if (_readPos + 8 > data.size()) return 0.0;
+    double val = *(double*)&data[_readPos];
+    _readPos += 8;
+    return val;
+}
+
+// Write methods with byte alignment
+inline void PacketData::WriteUInt8(uint8 val)
+{
+    FlushBits();
+    data.push_back(val);
+}
+
+inline void PacketData::WriteUInt16(uint16 val)
+{
+    FlushBits();
+    data.push_back(val & 0xFF);
+    data.push_back((val >> 8) & 0xFF);
+}
+
+inline void PacketData::WriteUInt32(uint32 val)
+{
+    FlushBits();
+    data.push_back(val & 0xFF);
+    data.push_back((val >> 8) & 0xFF);
+    data.push_back((val >> 16) & 0xFF);
+    data.push_back((val >> 24) & 0xFF);
+}
+
+inline void PacketData::WriteUInt64(uint64 val)
+{
+    FlushBits();
+    for (int i = 0; i < 8; ++i)
+        data.push_back((val >> (i * 8)) & 0xFF);
+}
+
+inline void PacketData::WriteInt8(int8 val) { WriteUInt8(static_cast<uint8>(val)); }
+inline void PacketData::WriteInt16(int16 val) { WriteUInt16(static_cast<uint16>(val)); }
+inline void PacketData::WriteInt32(int32 val) { WriteUInt32(static_cast<uint32>(val)); }
+inline void PacketData::WriteInt64(int64 val) { WriteUInt64(static_cast<uint64>(val)); }
+
+inline void PacketData::WriteFloat(float val)
+{
+    FlushBits();
+    union { float f; uint32 i; } u;
+    u.f = val;
+    WriteUInt32(u.i);
+}
+
+inline void PacketData::WriteDouble(double val)
+{
+    FlushBits();
+    union { double d; uint64 i; } u;
+    u.d = val;
+    WriteUInt64(u.i);
 }
 
 #endif // ANGELSCRIPT_INTEGRATION
