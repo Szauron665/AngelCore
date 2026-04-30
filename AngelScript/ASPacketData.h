@@ -70,12 +70,15 @@ struct PacketData
 // Inline implementations for bit operations
 inline bool PacketData::ReadBit()
 {
-    if (_readPos >= data.size())
+    if (_readPos >= data.size() && !_readingBits)
         return false;
 
-    if (!_readingBits || _bitPos == 8)
+    // Load new byte only if we don't have one being read
+    if (!_readingBits)
     {
-        _currentByte = data[_readPos++];
+        if (_readPos >= data.size())
+            return false;
+        _currentByte = data[_readPos];
         _readingBits = true;
         _writingBits = false;
         _bitPos = 0;
@@ -83,6 +86,15 @@ inline bool PacketData::ReadBit()
 
     bool bit = (_currentByte >> _bitPos) & 1;
     _bitPos++;
+    
+    // Only advance read position and clear reading state when byte is fully consumed
+    if (_bitPos >= 8)
+    {
+        _readPos++;
+        _readingBits = false;
+        _bitPos = 0;
+    }
+    
     return bit;
 }
 
