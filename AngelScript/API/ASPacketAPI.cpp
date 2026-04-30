@@ -104,6 +104,14 @@ namespace AngelScript
         return pd ? pd->ReadPackedUInt64() : 0;
     }
 
+    // PackedGuid128 = two consecutive packed uint64 (low mask+bytes, then high mask+bytes)
+    static void PD_ReadPackedGuid(PacketData* pd, uint64& low, uint64& high)
+    {
+        if (!pd) { low = 0; high = 0; return; }
+        low  = pd->ReadPackedUInt64();
+        high = pd->ReadPackedUInt64();
+    }
+
     static void PD_WritePackedUInt64(PacketData* pd, uint64 val)
     {
         // Reserve space for the mask byte, then write only non-zero bytes
@@ -226,6 +234,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void ResetBitReader()",                  asFUNCTION(PD_ResetBitReader),    asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WritePackedGuid(uint64, uint64)",  asFUNCTION(PD_WritePackedGuid),   asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "uint64 ReadPackedUInt64()",             asFUNCTION(PD_ReadPackedUInt64),  asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "void ReadPackedGuid(uint64 &out, uint64 &out)", asFUNCTION(PD_ReadPackedGuid), asCALL_CDECL_OBJFIRST);
 
         // Write methods
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteUInt8(uint8)", asFUNCTION(PD_WriteUInt8), asCALL_CDECL_OBJFIRST);
