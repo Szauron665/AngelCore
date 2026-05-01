@@ -99,6 +99,11 @@ namespace AngelScript
         return pd ? pd->ReadBytes(len) : "";
     }
 
+    static std::string PD_ReadWoWString(PacketData* pd, uint32 len)
+    {
+        return pd ? pd->ReadWoWString(len) : "";
+    }
+
     static uint64 PD_ReadPackedUInt64(PacketData* pd)
     {
         return pd ? pd->ReadPackedUInt64() : 0;
@@ -229,6 +234,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterObjectMethod("PacketData", "string ReadString()", asFUNCTION(PD_ReadString), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "string ReadCString()", asFUNCTION(PD_ReadCString), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "string ReadBytes(uint32)",            asFUNCTION(PD_ReadBytes),       asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "string ReadWoWString(uint32)",        asFUNCTION(PD_ReadWoWString),   asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteUInt32At(uint32, uint32)",   asFUNCTION(PD_WriteUInt32At),   asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "uint32 ReadUInt32At(uint32) const",    asFUNCTION(PD_ReadUInt32At),    asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "uint32 GetDataSize() const",           asFUNCTION(PD_GetDataSize),     asCALL_CDECL_OBJFIRST);

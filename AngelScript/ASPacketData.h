@@ -31,6 +31,7 @@ struct PacketData
     std::string ReadString();
     std::string ReadCString();
     std::string ReadBytes(uint32 length);
+    std::string ReadWoWString(uint32 length);
     uint64 ReadPackedUInt64();
     void ReadPackedGuid(uint64& low, uint64& high);
     
@@ -212,6 +213,22 @@ inline std::string PacketData::ReadBytes(uint32 length)
     if (_readPos + length > data.size()) return "";
     std::string s((char*)&data[_readPos], length);
     _readPos += length;
+    return s;
+}
+
+// WoW string read - fixed length bytes with null bytes stripped (matches ReadWoWString in C# parser)
+inline std::string PacketData::ReadWoWString(uint32 length)
+{
+    ResetBitReader();
+    if (_readPos + length > data.size()) return "";
+    std::string s;
+    s.reserve(length);
+    for (uint32 i = 0; i < length; ++i)
+    {
+        uint8 b = data[_readPos++];
+        if (b != 0)
+            s += static_cast<char>(b);
+    }
     return s;
 }
 
