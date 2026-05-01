@@ -48,6 +48,7 @@ struct PacketData
     void WriteDouble(double val);
     void WriteString(const std::string& val);
     void WriteCString(const std::string& val);
+    void WriteWoWString(const std::string& val, uint32 length);
     void WritePackedGuid(uint64 low, uint64 high);
     
     // Position management
@@ -470,6 +471,14 @@ inline void PacketData::WriteString(const std::string& val)
 inline void PacketData::WriteCString(const std::string& val)
 {
     WriteString(val);
+}
+
+// WoW string write — writes exactly 'length' bytes, padding with \0 if val is shorter
+inline void PacketData::WriteWoWString(const std::string& val, uint32 length)
+{
+    FlushBits();
+    for (uint32 i = 0; i < length; ++i)
+        data.push_back(i < val.size() ? static_cast<uint8>(val[i]) : 0);
 }
 
 // Position management

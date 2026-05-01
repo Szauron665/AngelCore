@@ -109,12 +109,11 @@ namespace AngelScript
         return pd ? pd->ReadPackedUInt64() : 0;
     }
 
-    // PackedGuid128 = two consecutive packed uint64 (low mask+bytes, then high mask+bytes)
+    // PackedGuid128: [maskLow][maskHigh][non-zero low bytes][non-zero high bytes]
     static void PD_ReadPackedGuid(PacketData* pd, uint64& low, uint64& high)
     {
         if (!pd) { low = 0; high = 0; return; }
-        low  = pd->ReadPackedUInt64();
-        high = pd->ReadPackedUInt64();
+        pd->ReadPackedGuid(low, high);
     }
 
     static void PD_WritePackedUInt64(PacketData* pd, uint64 val)
@@ -153,6 +152,7 @@ namespace AngelScript
     static void PD_WriteDouble(PacketData* pd, double v) { if (pd) pd->WriteDouble(v); }
     static void PD_WriteString(PacketData* pd, const std::string& v) { if (pd) pd->WriteString(v); }
     static void PD_WriteCString(PacketData* pd, const std::string& v) { if (pd) pd->WriteCString(v); }
+    static void PD_WriteWoWString(PacketData* pd, const std::string& v, uint32 len) { if (pd) pd->WriteWoWString(v, len); }
 
     static void PD_ResetReadPos(PacketData* pd) { if (pd) pd->ResetReadPos(); }
     static void PD_SetReadPos(PacketData* pd, uint32 pos) { if (pd) pd->SetReadPos(pos); }
@@ -256,6 +256,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteDouble(double)", asFUNCTION(PD_WriteDouble), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteString(const string& in)", asFUNCTION(PD_WriteString), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteCString(const string& in)", asFUNCTION(PD_WriteCString), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteWoWString(const string& in, uint32)", asFUNCTION(PD_WriteWoWString), asCALL_CDECL_OBJFIRST);
 
         // Position
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void ResetReadPos()", asFUNCTION(PD_ResetReadPos), asCALL_CDECL_OBJFIRST);
