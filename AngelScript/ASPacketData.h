@@ -221,7 +221,6 @@ inline std::string PacketData::ReadBytes(uint32 length)
 // Matches C# parser: Encoding.UTF8.GetString(bytes.Where(b => b != 0).ToArray())
 inline std::string PacketData::ReadWoWString(uint32 length)
 {
-    ResetBitReader();
     if (_readPos + length > data.size()) return "";
     std::string raw;
     raw.reserve(length);
