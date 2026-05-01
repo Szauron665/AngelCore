@@ -50,7 +50,7 @@ namespace AngelScript
 
     static void Global_Print(const std::string& msg)
     {
-        TC_LOG_INFO("server.angelscript", "{}", msg);
+        TC_LOG_INFO("scripts", "{}", msg);
     }
 
     static void Global_SendSystemMessage(Player* player, const std::string& msg)
