@@ -34,6 +34,7 @@
 #include "Log.h"
 #include "../ASPacketData.h"
 #include "../Hooks/ASPacketHooks.h"
+#include "Server/Packets/CharacterPackets.h"
 
 namespace AngelScript
 {
@@ -154,6 +155,55 @@ namespace AngelScript
     static void PD_WriteCString(PacketData* pd, const std::string& v) { if (pd) pd->WriteCString(v); }
     static void PD_WriteWoWString(PacketData* pd, const std::string& v, uint32 len) { if (pd) pd->WriteWoWString(v, len); }
 
+    // Write a WarbandGroupMember using TC's existing operator<< — guarantees correct wire format
+    static void PD_WriteWarbandMember(PacketData* pd, uint32 slotIndex, int32 memberType, int32 contentSetID, uint64 guidLow, uint64 guidHigh)
+    {
+        if (!pd) return;
+        WorldPackets::Character::WarbandGroupMember m;
+        m.WarbandScenePlacementID = slotIndex;
+        m.Type                   = memberType;
+        m.ContentSetID           = contentSetID;
+        if (memberType == 0)
+            m.Guid = ObjectGuid(guidHigh, guidLow);
+        ByteBuffer buf;
+        buf << m;
+        for (size_t i = 0; i < buf.size(); ++i)
+            pd->data.push_back(buf[i]);
+    }
+
+    // Write WarbandGroup header fields + name using TC's ByteBuffer — caller writes members separately first
+    // Usage: WriteWarbandGroupHeader, then WriteWarbandMember x N, then WriteWarbandGroupName
+    static void PD_WriteWarbandGroupHeader(PacketData* pd,
+        uint64 groupID, uint8 orderIndex, uint32 warbandSceneID, uint32 flags, int32 contentSetID, uint32 memberCount)
+    {
+        if (!pd) return;
+        ByteBuffer buf;
+        buf << uint64(groupID);
+        buf << uint8(orderIndex);
+        buf << uint32(warbandSceneID);
+        buf << uint32(flags);
+        buf << int32(contentSetID);
+        buf << uint32(memberCount);
+        for (size_t i = 0; i < buf.size(); ++i)
+            pd->data.push_back(buf[i]);
+    }
+
+    static void PD_WriteWarbandGroupName(PacketData* pd, const std::string& name)
+    {
+        if (!pd) return;
+        // Matches: data << SizedString::BitsSize<9>(name); data.FlushBits(); data << SizedString::Data(name);
+        WorldPackets::Character::WarbandGroup g;
+        g.GroupID = 0; g.OrderIndex = 0; g.WarbandSceneID = 0; g.Flags = 0; g.ContentSetID = 0;
+        g.Name = name;
+        // Write only via a temp group with no members, then skip the header bytes (8+1+4+4+4+4 = 25 bytes)
+        ByteBuffer buf;
+        buf << g;
+        // Skip header: uint64 + uint8 + uint32 + uint32 + int32 + uint32(memberCount=0) = 25 bytes
+        constexpr size_t headerSize = sizeof(uint64) + sizeof(uint8) + sizeof(uint32) + sizeof(uint32) + sizeof(int32) + sizeof(uint32);
+        for (size_t i = headerSize; i < buf.size(); ++i)
+            pd->data.push_back(buf[i]);
+    }
+
     static void PD_ResetReadPos(PacketData* pd) { if (pd) pd->ResetReadPos(); }
     static void PD_SetReadPos(PacketData* pd, uint32 pos) { if (pd) pd->SetReadPos(pos); }
     static void PD_ResetWritePos(PacketData* pd) { if (pd) pd->ResetWritePos(); }
@@ -257,6 +307,9 @@ namespace AngelScript
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteString(const string& in)", asFUNCTION(PD_WriteString), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteCString(const string& in)", asFUNCTION(PD_WriteCString), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteWoWString(const string& in, uint32)", asFUNCTION(PD_WriteWoWString), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteWarbandGroupHeader(uint64, uint8, uint32, uint32, int32, uint32)", asFUNCTION(PD_WriteWarbandGroupHeader), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteWarbandMember(uint32, int32, int32, uint64, uint64)", asFUNCTION(PD_WriteWarbandMember), asCALL_CDECL_OBJFIRST);
+        r = _scriptEngine->RegisterObjectMethod("PacketData", "void WriteWarbandGroupName(const string& in)", asFUNCTION(PD_WriteWarbandGroupName), asCALL_CDECL_OBJFIRST);
 
         // Position
         r = _scriptEngine->RegisterObjectMethod("PacketData", "void ResetReadPos()", asFUNCTION(PD_ResetReadPos), asCALL_CDECL_OBJFIRST);
