@@ -3,8 +3,8 @@
  * Announces player logins with class, race, gender, faction and level info
  */
 
-#include "ScriptFramework.as"
-#include "Common.as"
+#include "includes/ScriptFramework.as"
+#include "includes/Common.as"
 
 string GetClassIcon(uint8 classId)
 {

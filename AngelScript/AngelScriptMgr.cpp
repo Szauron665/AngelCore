@@ -325,7 +325,7 @@ bool AngelScriptMgr::LoadScripts()
 
     uint32 ok=0,fail=0;
     for (auto& e : fs::recursive_directory_iterator(_scriptPath))
-        if (e.is_regular_file() && e.path().extension()==".as")
+        if (e.is_regular_file() && e.path().extension()==".as" && e.path().parent_path().filename()!="includes")
             CompileScript(e.path().string(), fs::relative(e.path(),_scriptPath).string()) ? ok++ : fail++;
     TC_LOG_INFO("server.loading", ">> AngelScript: compiled {} script(s), {} failed", ok, fail);
     return fail==0;
