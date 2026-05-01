@@ -32,12 +32,13 @@
 #include "Creature.h"
 #include "World.h"
 #include "WorldSession.h"
+#include <cstdio>
+#include <cmath>
 #include "ObjectAccessor.h"
 #include "ChatTextBuilder.h"
 #include "Chat.h"
 #include "GameTime.h"
 #include "Log.h"
-#include <cmath>
 #include <string>
 
 namespace AngelScript
@@ -50,6 +51,10 @@ namespace AngelScript
 
     static void Global_Print(const std::string& msg)
     {
+        std::printf("[AngelScript] %s\n", msg.c_str());
+        std::fflush(stdout);
+        std::fprintf(stderr, "[AngelScript] %s\n", msg.c_str());
+        std::fflush(stderr);
         TC_LOG_WARN("server.angelscript", "{}", msg);
     }
 
@@ -132,6 +137,8 @@ namespace AngelScript
         int r;
         // Print / debug
         r = _scriptEngine->RegisterGlobalFunction("void Print(const string& in)", asFUNCTION(Global_Print), asCALL_CDECL);
+        if (r < 0)
+            TC_LOG_ERROR("server.angelscript", "RegisterGlobalFunction Print failed: {}", r);
         r = _scriptEngine->RegisterGlobalFunction("void SendSystemMessage(Player@, const string& in)", asFUNCTION(Global_SendSystemMessage), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("void SendFloatingText(Player@, const string& in, uint32)", asFUNCTION(Global_SendFloatingText), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("void PlaySoundToPlayer(Player@, uint32)", asFUNCTION(Global_PlaySoundToPlayer), asCALL_CDECL);
