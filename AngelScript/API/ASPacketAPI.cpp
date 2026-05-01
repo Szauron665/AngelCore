@@ -34,7 +34,7 @@
 #include "Log.h"
 #include "../ASPacketData.h"
 #include "../Hooks/ASPacketHooks.h"
-#include "Server/Packets/CharacterPackets.h"
+#include "ByteBuffer.h"
 
 namespace AngelScript
 {
@@ -155,24 +155,47 @@ namespace AngelScript
     static void PD_WriteCString(PacketData* pd, const std::string& v) { if (pd) pd->WriteCString(v); }
     static void PD_WriteWoWString(PacketData* pd, const std::string& v, uint32 len) { if (pd) pd->WriteWoWString(v, len); }
 
-    // Write a WarbandGroupMember using TC's existing operator<< — guarantees correct wire format
-    static void PD_WriteWarbandMember(PacketData* pd, uint32 slotIndex, int32 memberType, int32 contentSetID, uint64 guidLow, uint64 guidHigh)
+    // Append bytes from a ByteBuffer into PacketData
+    static void AppendBuf(PacketData* pd, ByteBuffer& buf)
     {
-        if (!pd) return;
-        WorldPackets::Character::WarbandGroupMember m;
-        m.WarbandScenePlacementID = slotIndex;
-        m.Type                   = memberType;
-        m.ContentSetID           = contentSetID;
-        if (memberType == 0)
-            m.Guid = ObjectGuid(guidHigh, guidLow);
-        ByteBuffer buf;
-        buf << m;
         for (size_t i = 0; i < buf.size(); ++i)
             pd->data.push_back(buf[i]);
     }
 
-    // Write WarbandGroup header fields + name using TC's ByteBuffer — caller writes members separately first
-    // Usage: WriteWarbandGroupHeader, then WriteWarbandMember x N, then WriteWarbandGroupName
+    // Write a WarbandGroupMember: slotIndex(u32) + memberType(i32) + contentSetID(i32) + [packedGuid if type==0]
+    // Matches CharacterPackets.cpp operator<<(ByteBuffer&, WarbandGroupMember const&)
+    static void PD_WriteWarbandMember(PacketData* pd, uint32 slotIndex, int32 memberType, int32 contentSetID, uint64 guidLow, uint64 guidHigh)
+    {
+        if (!pd) return;
+        ByteBuffer buf;
+        buf << uint32(slotIndex);
+        buf << int32(memberType);
+        buf << int32(contentSetID);
+        if (memberType == 0)
+        {
+            // PackedGuid128: maskLow, maskHigh, then non-zero low bytes, then non-zero high bytes
+            uint8 maskLow = 0, maskHigh = 0;
+            uint8 lowBytes[8], highBytes[8];
+            int lowCount = 0, highCount = 0;
+            for (int b = 0; b < 8; ++b)
+            {
+                uint8 byte = (guidLow >> (b * 8)) & 0xFF;
+                if (byte) { maskLow |= (1 << b); lowBytes[lowCount++] = byte; }
+            }
+            for (int b = 0; b < 8; ++b)
+            {
+                uint8 byte = (guidHigh >> (b * 8)) & 0xFF;
+                if (byte) { maskHigh |= (1 << b); highBytes[highCount++] = byte; }
+            }
+            buf << uint8(maskLow) << uint8(maskHigh);
+            for (int b = 0; b < lowCount; ++b)  buf << lowBytes[b];
+            for (int b = 0; b < highCount; ++b) buf << highBytes[b];
+        }
+        AppendBuf(pd, buf);
+    }
+
+    // Write WarbandGroup header: groupID(u64)+orderIndex(u8)+sceneID(u32)+flags(u32)+contentSetID(i32)+memberCount(u32)
+    // Matches CharacterPackets.cpp operator<<(ByteBuffer&, WarbandGroup const&) — header portion only
     static void PD_WriteWarbandGroupHeader(PacketData* pd,
         uint64 groupID, uint8 orderIndex, uint32 warbandSceneID, uint32 flags, int32 contentSetID, uint32 memberCount)
     {
@@ -184,24 +207,19 @@ namespace AngelScript
         buf << uint32(flags);
         buf << int32(contentSetID);
         buf << uint32(memberCount);
-        for (size_t i = 0; i < buf.size(); ++i)
-            pd->data.push_back(buf[i]);
+        AppendBuf(pd, buf);
     }
 
+    // Write WarbandGroup name: WriteBits(len,9) + FlushBits + WriteString(data)
+    // Matches: data << SizedString::BitsSize<9>(name); data.FlushBits(); data << SizedString::Data(name);
     static void PD_WriteWarbandGroupName(PacketData* pd, const std::string& name)
     {
         if (!pd) return;
-        // Matches: data << SizedString::BitsSize<9>(name); data.FlushBits(); data << SizedString::Data(name);
-        WorldPackets::Character::WarbandGroup g;
-        g.GroupID = 0; g.OrderIndex = 0; g.WarbandSceneID = 0; g.Flags = 0; g.ContentSetID = 0;
-        g.Name = name;
-        // Write only via a temp group with no members, then skip the header bytes (8+1+4+4+4+4 = 25 bytes)
         ByteBuffer buf;
-        buf << g;
-        // Skip header: uint64 + uint8 + uint32 + uint32 + int32 + uint32(memberCount=0) = 25 bytes
-        constexpr size_t headerSize = sizeof(uint64) + sizeof(uint8) + sizeof(uint32) + sizeof(uint32) + sizeof(int32) + sizeof(uint32);
-        for (size_t i = headerSize; i < buf.size(); ++i)
-            pd->data.push_back(buf[i]);
+        buf.WriteBits(static_cast<uint32>(name.length()), 9);
+        buf.FlushBits();
+        buf.WriteString(name);  // raw bytes, no null terminator
+        AppendBuf(pd, buf);
     }
 
     static void PD_ResetReadPos(PacketData* pd) { if (pd) pd->ResetReadPos(); }
