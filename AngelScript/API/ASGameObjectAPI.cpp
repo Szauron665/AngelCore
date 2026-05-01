@@ -127,7 +127,7 @@ namespace AngelScript
         // Distance
         r = _scriptEngine->RegisterObjectMethod("GameObject", "float GetDistanceTo(Unit@) const", asFUNCTION(GO_GetDistanceTo), asCALL_CDECL_OBJFIRST);
 
-        TC_LOG_INFO("angelscript", "GameObject API registered ({} methods)", 35);
+        TC_LOG_INFO("server.angelscript", "GameObject API registered ({} methods)", 35);
     }
 
 } // namespace AngelScript

@@ -58,7 +58,6 @@ namespace AngelScript
 
     static ResultSet* DB_CharacterQuery(const std::string& sql)
     {
-        TC_LOG_INFO("angelscript", "CharacterDatabase query: {}", sql);
         QueryResult result = CharacterDatabase.Query(sql.c_str());
         if (!result) return nullptr;
         ResultSet* raw = result.get();
@@ -68,7 +67,6 @@ namespace AngelScript
 
     static ResultSet* DB_WorldQuery(const std::string& sql)
     {
-        TC_LOG_INFO("angelscript", "WorldDatabase query: {}", sql);
         QueryResult result = WorldDatabase.Query(sql.c_str());
         if (!result) return nullptr;
         ResultSet* raw = result.get();
@@ -78,7 +76,6 @@ namespace AngelScript
 
     static ResultSet* DB_LoginQuery(const std::string& sql)
     {
-        TC_LOG_INFO("angelscript", "LoginDatabase query: {}", sql);
         QueryResult result = LoginDatabase.Query(sql.c_str());
         if (!result) return nullptr;
         ResultSet* raw = result.get();
@@ -104,31 +101,27 @@ namespace AngelScript
 
     static void DB_CharacterExecute(const std::string& sql)
     {
-        TC_LOG_INFO("angelscript", "CharacterDatabase execute: {}", sql);
         CharacterDatabase.Execute(sql.c_str());
     }
 
     static void DB_WorldExecute(const std::string& sql)
     {
-        TC_LOG_INFO("angelscript", "WorldDatabase execute: {}", sql);
         WorldDatabase.Execute(sql.c_str());
     }
 
     static void DB_LoginExecute(const std::string& sql)
     {
-        TC_LOG_INFO("angelscript", "LoginDatabase execute: {}", sql);
         LoginDatabase.Execute(sql.c_str());
     }
 
     // Prepared statement support — execute by index
     static void DB_CharacterPreparedStatementExecute(uint32 index)
     {
-        TC_LOG_INFO("angelscript", "CharacterDatabase prepared stmt execute: {}", index);
         auto stmt = CharacterDatabase.GetPreparedStatement(static_cast<CharacterDatabaseStatements>(index));
         if (stmt)
             CharacterDatabase.Execute(stmt);
         else
-            TC_LOG_ERROR("angelscript", "Invalid prepared statement index: {}", index);
+            TC_LOG_ERROR("server.angelscript", "Invalid prepared statement index: {}", index);
     }
 
     void RegisterDatabaseAPI(asIScriptEngine* _scriptEngine)
@@ -160,7 +153,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterGlobalFunction("void ClearStaleQueryResults()", asFUNCTION(DB_ClearStaleResults), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("string DBEscapeString(const string& in)", asFUNCTION(DB_EscapeString), asCALL_CDECL);
 
-        TC_LOG_INFO("angelscript", "Database API registered");
+        TC_LOG_INFO("server.angelscript", "Database API registered");
     }
 
 } // namespace AngelScript

@@ -50,7 +50,7 @@ namespace AngelScript
 
     static void Global_Print(const std::string& msg)
     {
-        TC_LOG_INFO("scripts", "{}", msg);
+        TC_LOG_INFO("server.angelscript", "{}", msg);
     }
 
     static void Global_SendSystemMessage(Player* player, const std::string& msg)
@@ -153,7 +153,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterGlobalFunction("Player@ FindPlayerByName(const string& in)", asFUNCTION(Global_FindPlayerByName), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("Player@ FindPlayerByGUID(uint64)", asFUNCTION(Global_FindPlayerByGUID), asCALL_CDECL);
 
-        TC_LOG_INFO("angelscript", "Global functions registered");
+        TC_LOG_INFO("server.angelscript", "Global functions registered");
     }
 
     void RegisterMathAPI(asIScriptEngine* _scriptEngine)
@@ -173,14 +173,14 @@ namespace AngelScript
         r = _scriptEngine->RegisterGlobalProperty("const float PI", const_cast<float*>(&Math_PI));
         r = _scriptEngine->RegisterGlobalProperty("const float HALF_PI", const_cast<float*>(&Math_Half_PI));
 
-        TC_LOG_INFO("angelscript", "Math API registered");
+        TC_LOG_INFO("server.angelscript", "Math API registered");
     }
 
     void RegisterStringAPI(asIScriptEngine* /*_scriptEngine*/)
     {
         // AngelScript's built-in string type is already registered by the stdstring add-on
         // Just register any extra string utility functions if needed
-        TC_LOG_INFO("angelscript", "String API registered (using built-in std::string)");
+        TC_LOG_INFO("server.angelscript", "String API registered (using built-in std::string)");
     }
 
 } // namespace AngelScript

@@ -199,7 +199,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterGlobalFunction("void SetUpdateFieldFloat(Unit@, const string& in, float)", asFUNCTION(SetUpdateFieldFloat), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("void SetGOUpdateFieldInt32(GameObject@, const string& in, int32)", asFUNCTION(SetGOUpdateFieldInt32), asCALL_CDECL);
 
-        TC_LOG_INFO("angelscript", "UpdateField API registered ({} direct field setters)", 17);
+        TC_LOG_INFO("server.angelscript", "UpdateField API registered ({} direct field setters)", 17);
     }
 
 } // namespace AngelScript

@@ -331,7 +331,7 @@ namespace AngelScript
         // GetLockedDungeons hook: bool OnGetLockedDungeons(Player@)
         r = _scriptEngine->RegisterGlobalFunction("void RegisterGetLockedDungeonsHook(int, ScriptCallback@)", asFUNCTION(RegisterCustomHook_SendPlayerChoice), asCALL_CDECL);
 
-        TC_LOG_INFO("angelscript", "World API registered (phase, summon, ObjectMgr, update fields, hook points)");
+        TC_LOG_INFO("server.angelscript", "World API registered (phase, summon, ObjectMgr, update fields, hook points)");
     }
 
 } // namespace AngelScript

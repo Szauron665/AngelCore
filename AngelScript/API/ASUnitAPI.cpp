@@ -167,7 +167,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterObjectMethod("Unit", "float GetPositionZ() const", asFUNCTION(Unit_GetPositionZ), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("Unit", "float GetOrientation() const", asFUNCTION(Unit_GetOrientation), asCALL_CDECL_OBJFIRST);
 
-        TC_LOG_INFO("angelscript", "Unit API registered ({} methods)", 50);
+        TC_LOG_INFO("server.angelscript", "Unit API registered ({} methods)", 50);
     }
 
 } // namespace AngelScript

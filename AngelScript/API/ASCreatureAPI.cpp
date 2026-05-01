@@ -197,7 +197,7 @@ namespace AngelScript
         // Cast
         r = _scriptEngine->RegisterObjectMethod("Creature", "Player@ ToPlayer() const", asFUNCTION(Creature_ToPlayer), asCALL_CDECL_OBJFIRST);
 
-        TC_LOG_INFO("angelscript", "Creature API registered ({} methods)", 55);
+        TC_LOG_INFO("server.angelscript", "Creature API registered ({} methods)", 55);
     }
 
 } // namespace AngelScript

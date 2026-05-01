@@ -478,7 +478,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterGlobalFunction("bool IsToyItem(uint32)", asFUNCTION(DB2_IsToyItem), asCALL_CDECL);
         r = _scriptEngine->RegisterGlobalFunction("uint32 GetGlobalCurveId(uint32)", asFUNCTION(DB2_GetGlobalCurveId), asCALL_CDECL);
 
-        TC_LOG_INFO("angelscript", "DB2 API registered (shared TC stores)");
+        TC_LOG_INFO("server.angelscript", "DB2 API registered (shared TC stores)");
     }
 
     // ========================================================================
@@ -746,7 +746,7 @@ namespace AngelScript
         r = engine->RegisterObjectMethod("DB2Record", "uint32 GetFieldCount()", 
             asFUNCTION(DB2_RecordGetFieldCount), asCALL_CDECL_OBJFIRST);
 
-        TC_LOG_INFO("angelscript", "Dynamic DB2 API registered");
+        TC_LOG_INFO("server.angelscript", "Dynamic DB2 API registered");
     }
 
 } // namespace AngelScript

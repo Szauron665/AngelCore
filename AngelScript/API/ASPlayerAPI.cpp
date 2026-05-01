@@ -235,7 +235,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterObjectMethod("Player", "uint32 GetSkillStep(uint32) const", asFUNCTION(Player_GetSkillStep), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("Player", "uint16 GetSkillValue(uint32) const", asFUNCTION(Player_GetSkillValue), asCALL_CDECL_OBJFIRST);
 
-        TC_LOG_INFO("angelscript", "Player API registered ({} methods)", 65);
+        TC_LOG_INFO("server.angelscript", "Player API registered ({} methods)", 65);
     }
 
 } // namespace AngelScript

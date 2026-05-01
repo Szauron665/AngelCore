@@ -278,13 +278,13 @@ namespace AngelScript
         // Send
         r = _scriptEngine->RegisterGlobalFunction("void SendPacketToPlayer(Player@, PacketData@)", asFUNCTION(PD_SendToPlayer), asCALL_CDECL);
 
-        TC_LOG_INFO("angelscript", "Packet API registered");
+        TC_LOG_INFO("server.angelscript", "Packet API registered");
     }
 
     void RegisterEnhancedPacketAPI(asIScriptEngine* /*_scriptEngine*/)
     {
         // Already covered by RegisterPacketAPI — this is the consolidated version
-        TC_LOG_INFO("angelscript", "Enhanced Packet API registered (consolidated with Packet API)");
+        TC_LOG_INFO("server.angelscript", "Enhanced Packet API registered (consolidated with Packet API)");
     }
 
 } // namespace AngelScript

@@ -116,7 +116,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterGlobalProperty("const uint32 GOSSIP_ICON_TRAINER", const_cast<uint32*>(&GOSSIP_ICON_TRAINER_CONST));
         r = _scriptEngine->RegisterGlobalProperty("const uint32 GOSSIP_ICON_QUEST", const_cast<uint32*>(&GOSSIP_ICON_QUEST_CONST));
 
-        TC_LOG_INFO("angelscript", "Gossip API registered");
+        TC_LOG_INFO("server.angelscript", "Gossip API registered");
     }
 
 } // namespace AngelScript

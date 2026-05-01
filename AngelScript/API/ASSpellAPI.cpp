@@ -99,7 +99,7 @@ namespace AngelScript
         r = _scriptEngine->RegisterObjectMethod("Spell", "uint32 GetPowerCost() const", asFUNCTION(Spell_GetPowerCost), asCALL_CDECL_OBJFIRST);
         r = _scriptEngine->RegisterObjectMethod("Spell", "uint8 GetSpellSchool() const", asFUNCTION(Spell_GetSpellSchool), asCALL_CDECL_OBJFIRST);
 
-        TC_LOG_INFO("angelscript", "Spell API registered ({} methods)", 18);
+        TC_LOG_INFO("server.angelscript", "Spell API registered ({} methods)", 18);
     }
 
 } // namespace AngelScript
