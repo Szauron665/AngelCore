@@ -216,18 +216,57 @@ inline std::string PacketData::ReadBytes(uint32 length)
     return s;
 }
 
-// WoW string read - fixed length bytes with null bytes stripped (matches ReadWoWString in C# parser)
+// WoW string read - fixed length bytes with null bytes and invalid UTF-8 bytes stripped.
+// Matches C# parser: Encoding.UTF8.GetString(bytes.Where(b => b != 0).ToArray())
 inline std::string PacketData::ReadWoWString(uint32 length)
 {
     ResetBitReader();
     if (_readPos + length > data.size()) return "";
-    std::string s;
-    s.reserve(length);
+    std::string raw;
+    raw.reserve(length);
     for (uint32 i = 0; i < length; ++i)
     {
         uint8 b = data[_readPos++];
         if (b != 0)
-            s += static_cast<char>(b);
+            raw += static_cast<char>(b);
+    }
+    // Strip lone UTF-8 continuation bytes (0x80-0xBF) that have no valid leading byte,
+    // which MySQL utf8mb4 rejects with errno 1366.
+    std::string s;
+    s.reserve(raw.size());
+    for (size_t i = 0; i < raw.size(); )
+    {
+        uint8 b = static_cast<uint8>(raw[i]);
+        if (b < 0x80)           // ASCII
+            { s += raw[i++]; }
+        else if (b < 0xC2)      // lone continuation or overlong — skip
+            { ++i; }
+        else if (b < 0xE0)      // 2-byte sequence
+        {
+            if (i + 1 < raw.size() && (static_cast<uint8>(raw[i+1]) & 0xC0) == 0x80)
+                { s += raw[i]; s += raw[i+1]; i += 2; }
+            else
+                { ++i; }
+        }
+        else if (b < 0xF0)      // 3-byte sequence
+        {
+            if (i + 2 < raw.size() && (static_cast<uint8>(raw[i+1]) & 0xC0) == 0x80
+                                   && (static_cast<uint8>(raw[i+2]) & 0xC0) == 0x80)
+                { s += raw[i]; s += raw[i+1]; s += raw[i+2]; i += 3; }
+            else
+                { ++i; }
+        }
+        else if (b < 0xF5)      // 4-byte sequence
+        {
+            if (i + 3 < raw.size() && (static_cast<uint8>(raw[i+1]) & 0xC0) == 0x80
+                                   && (static_cast<uint8>(raw[i+2]) & 0xC0) == 0x80
+                                   && (static_cast<uint8>(raw[i+3]) & 0xC0) == 0x80)
+                { s += raw[i]; s += raw[i+1]; s += raw[i+2]; s += raw[i+3]; i += 4; }
+            else
+                { ++i; }
+        }
+        else                    // > 0xF4 — invalid
+            { ++i; }
     }
     return s;
 }
